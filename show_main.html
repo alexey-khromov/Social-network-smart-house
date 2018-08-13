@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+
+    <script type="text/javascript">
+
+        window.setInterval(prepareFrame, 3000);
+
+        var sources = ['http://www.walla.co.il/', 'http://www.ynet.co.il', 'http://www.mako.co.il'];
+        var i =0;
+        function prepareFrame() {
+            document.getElementById('internal').src = sources[i];
+            i = (i + 1) % 3;
+        }
+    </script>
+</head>
+
+
+<body>
+    <iframe src="" style="width: 1000px; height: 500px" id="internal"></iframe>
+
+</body>
+</html>
