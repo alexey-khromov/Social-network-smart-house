@@ -1,6 +1,6 @@
 from pprint import pprint
 from fbrecog import FBRecog
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from urllib.request import urlopen
 import requests
 
@@ -23,14 +23,10 @@ recog = FBRecog(access_token, cookies, fb_dtsg)
 '''
 
 
-USERNAME = 'open_whholsg_user@tfbnw.net	'
-PASSWORD = '13579qa'
-PROTECTED_URL = 'https://www.facebook.com/profile.php?id=100027806203468&lst=100027703129886%3A100027806203468%3A1534520948&sk=did_you_know'
-# my original intentions were to scrape data from the group page
-# PROTECTED_URL = 'https://www.facebook.com/groups/318395378171876/members/'
-# but the only working login code I found needs to use m.facebook URLs
-# which can be found by logging into https://m.facebook.com/login/ and
-# going to the the protected page the same way you would on a desktop
+USERNAME = 'alexey.khrom@gmail.com'
+PASSWORD = '13579qaz'
+PROTECTED_URL = 'https://www.facebook.com/asia.zhivov/likes?lst=1198688678%3A843054236%3A1535896155'
+
 
 def login(session, email, password):
     '''
@@ -58,12 +54,15 @@ if __name__ == "__main__":
     # the value of response.text, pasting it in the HTML input field of
     # http://codebeautify.org/htmlviewer/ and hitting the run button
 
-    page = response.text
-    soup = BeautifulSoup(page, "html.parser")
+    soup = BeautifulSoup(response.content, "html.parser")
+    comments = soup.findAll(text=lambda text: isinstance(text, Comment))
+    final_likes_list = []
+    for comment in comments:
+        soup_inner = BeautifulSoup(comment, 'html.parser')
+        div_likes_list = soup_inner.findAll('div',{'class':['fsl fwb fcb', 'fsl fwb fcb _5wj-']}) # one for eng. and one for heb.
+        for div_like in div_likes_list:
+            div_like_link = div_like.find('a')
+            final_likes_list.append({div_like_link.text: div_like_link['href']})
 
-    divs = soup.find_all("div", class_="_4pq3 _3-8w _2iej _50f7") #, class_="_4pq3 _3-8w _2iej _50f7"
-    print(divs)
-    for div in divs:
-        p = div.find('text')
-        print(p.get_text())
-
+    for liked_page in final_likes_list:
+        print(liked_page)
