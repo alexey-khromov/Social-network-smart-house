@@ -6,49 +6,37 @@
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
+        (function(d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.1&appId=1721853424592137&autoLogAppEvents=1';
+            fjs.parentNode.insertBefore(js, fjs);
+            }(document, 'script', 'facebook-jssdk'));
 
-    var interval = 10000;
+        var interval = 4000;
+        function change_frame_func() {
+            $.getJSON(
+            {
+            url: "/getNextFrame",
+            data: {},
+            success: function(result)
+                        {
+                        $(".fb-page").attr('data-href', result.next_url);
+                        setTimeout(change_frame_func, interval);
+                        FB.XFBML.parse();
+                        }
+            });
+        };
 
-    function change_frame_func() {
-        $.getJSON(
-        {
-        url: "/getNextFrame",
-        data: {},
-        success: function(result)
-        {
-            $("#varID").html(result.next_url);
-            $("#internal").attr('src', result.next_url);
-            setTimeout(change_frame_func, interval);
-        }
-        });
-    };
-
-    $(document).ready(change_frame_func());
-
+        $(document).ready(change_frame_func());
     </script>
 </head>
 
 
 <body>
+<div id="fb-root"></div>
+<div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="1000" data-height="1000" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false" data-show-facepile="true"></div>
 
-    <button id="submit">Submit</button><br>
-    <span id="varID">Click on submit</span><br>
-    <iframe style="width: 100%; height: 1000px" id="internal"></iframe>
 </body>
 </html>
-
-<!--
-
-    <script type="text/javascript">
-
-    </script>
-
- src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"
-
-      document.getElementById('internal').src = "{{ my_iframe }}";
-
-
-
-
-
--->
