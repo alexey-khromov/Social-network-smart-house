@@ -31,7 +31,7 @@ except KeyError:
 
 app = Flask(__name__, template_folder='./')
 PROTECTED_URL = 'https://www.facebook.com/asia.zhivov/likes?lst=1198688678%3A843054236%3A1535896155'
-i = 0
+i = -1
 global sources
 
 @app.route('/') # <string:page_name>/
@@ -43,9 +43,23 @@ def getData():
     global i
     global sources
 
-    next_source_frame = sources[i];
-    i = (i + 1) % len(sources);
-    return jsonify({'next_url': next_source_frame})
+    next_page_name = list(sources.keys())[i]
+    friend_name = 'NAME_OF_MIKE'
+    res = jsonify({'next_url': '',
+                   'person_name': '',
+                   'page_name': '',
+                   'status': 'recognizing'
+                   })
+    if i > -1:
+        res = jsonify({'next_url': sources[next_page_name],
+                       'person_name': friend_name,
+                       'page_name': next_page_name,
+                       'status': 'recognized'
+                       })
+
+    i = (i + 1) % len(sources)
+    return res
+
 
 
 def login(session, email, password):
@@ -83,11 +97,11 @@ if __name__ == '__main__':
             div_like_link = div_like.find('a')
             final_likes_dict[div_like_link.text] = div_like_link['href']
 
-    for liked_page, link_page in final_likes_dict.items():
-        print(link_page)
+    #for liked_page, link_page in final_likes_dict.items():
+    #    print(link_page)
 
     global sources
-    sources = list(final_likes_dict.values())
+    sources = final_likes_dict
 
     # For posts retrieving from pages
     '''

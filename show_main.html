@@ -14,29 +14,106 @@
             fjs.parentNode.insertBefore(js, fjs);
             }(document, 'script', 'facebook-jssdk'));
 
-        var interval = 4000;
-        function change_frame_func() {
-            $.getJSON(
+        var interval = 10000;
+        function change_frame_func()
             {
-            url: "/getNextFrame",
-            data: {},
-            success: function(result)
+            $.getJSON(
+                {
+                url: "/getNextFrame",
+                data: {},
+                success: function(result)
+                    {
+                    if (result.status == "recognizing")
+                        {
+                        $(".fb-page").attr('data-href', '');
+                        document.getElementById("status_span").textContent = 'Found a face, recognizing.';
+                        document.getElementById("person_name_span").textContent = '-';
+                        document.getElementById("page_name_span").textContent = '-';
+                        }
+                    else if (result.status == "recognized")
                         {
                         $(".fb-page").attr('data-href', result.next_url);
-                        setTimeout(change_frame_func, interval);
-                        FB.XFBML.parse();
+                        document.getElementById("status_span").textContent = 'Recognized';
+                        document.getElementById("person_name_span").textContent = result.person_name;
+                        document.getElementById("page_name_span").textContent = result.page_name;
                         }
-            });
-        };
+                    else
+                        {
+                        $(".fb-page").attr('data-href', '');
+                        document.getElementById("status_span").textContent = 'Waiting for orders.';
+                        document.getElementById("person_name_span").textContent = '-';
+                        document.getElementById("page_name_span").textContent = '-';
+                        }
+
+                    setTimeout(change_frame_func, interval);
+                    FB.XFBML.parse();
+                    }
+                });
+            };
 
         $(document).ready(change_frame_func());
+
+
+        var video = document.querySelector("#videoElement");
+        if (navigator.mediaDevices.getUserMedia) {navigator.mediaDevices.getUserMedia({video: true})
+            .then(function(stream) {
+            video.srcObject = stream;
+          })
+          .catch(function(err0r) {
+            console.log("Something went wrong!");
+          });
+        }
     </script>
+
+    <style>
+        #container {
+            margin: 0px auto;
+            width: 500px;
+            height: 375px;
+            border: 10px #333 solid;
+        }
+        #videoElement {
+            width: 500px;
+            height: 375px;
+            background-color: #666;
+        }
+    </style>
 </head>
 
 
 <body>
-<div id="fb-root"></div>
-<div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="1000" data-height="1000" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false" data-show-facepile="true"></div>
+<table style="height: 100%;width:1000" align="center" border="1" cellspacing="0">
+    <tr>
+        <th width="500" valign="top">
+            <h1>Smart Home Project</h1>
+            <h3>Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
+            <br>
+            Please look straight at the camera to be recognized.<br>
+            Note: you must be friend with Smart Home on Facebook to use the application.<br>
+            After you've been recognized, use hand gestures:<br>
+            - Up and down to scroll<br>
+            - Left and right to swipe between liked pages.
+            <br><br><br>
+            Status: <span id="status_span"></span><br>
+            Recognized person: <span id="person_name_span"></span><br>
+            Now showing page: <span id="page_name_span"></span><br>
+            Recognized gesture: <span id="gesture_span"></span>
+            <br><br><br>
+            Video Stream here
+            <div id="container">
+                <video autoplay="true" id="videoElement"></video>
+            </div>
+        </th>
+        <th width="500">
+            <div id="fb-root"></div>
+            <!-- note 500px is max length of fb plugin-->
+            <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
+                 data-height="100%" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false"
+                 data-show-facepile="true"></div>
+        </th>
+    </tr>
+</table>
+
 
 </body>
 </html>
