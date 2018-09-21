@@ -1,0 +1,23 @@
+    # For posts retrieving from pages
+    '''
+    posts_links_to_show = []
+    for liked_page, link_page in final_likes_dict.items():
+        #print(link_page)
+        page_name = link_page.split('/')[-2]
+        new_link = link_page.replace(page_name, 'pg/' + page_name + '/posts/?ref=page_internal')
+        #print(new_link)
+        posts_links_to_show.append(new_link)
+
+    final_posts_list = []
+    for liked_page in posts_links_to_show:
+        response = urlopen(liked_page)
+        soup = BeautifulSoup(response.read(), "html.parser")
+        posts_object = soup.find('span', {'class': 'fsm fwn fcg'})
+        if posts_object is not None:
+            div_like_link = posts_object.find('a')
+            link_to_append = 'https://www.facebook.com' + div_like_link['href']
+            final_posts_list.append(link_to_append)
+
+    for post in final_posts_list:
+        print(post)
+    '''

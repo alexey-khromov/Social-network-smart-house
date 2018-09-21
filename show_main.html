@@ -3,86 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <title> Smart Home </title>
-
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
-    <script>
-        (function(d, s, id) {
-            var js, fjs = d.getElementsByTagName(s)[0];
-            if (d.getElementById(id)) return;
-            js = d.createElement(s); js.id = id;
-            js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.1&appId=1721853424592137&autoLogAppEvents=1';
-            fjs.parentNode.insertBefore(js, fjs);
-            }(document, 'script', 'facebook-jssdk'));
-
-        var interval = 10000;
-        function change_frame_func()
-            {
-            $.getJSON(
-                {
-                url: "/getNextFrame",
-                data: {},
-                success: function(result)
-                    {
-                    if (result.status == "recognizing")
-                        {
-                        $(".fb-page").attr('data-href', '');
-                        document.getElementById("status_span").textContent = 'Found a face, recognizing.';
-                        document.getElementById("person_name_span").textContent = '-';
-                        document.getElementById("page_name_span").textContent = '-';
-                        }
-                    else if (result.status == "recognized")
-                        {
-                        $(".fb-page").attr('data-href', result.next_url);
-                        document.getElementById("status_span").textContent = 'Recognized';
-                        document.getElementById("person_name_span").textContent = result.person_name;
-                        document.getElementById("page_name_span").textContent = result.page_name;
-                        }
-                    else
-                        {
-                        $(".fb-page").attr('data-href', '');
-                        document.getElementById("status_span").textContent = 'Waiting for orders.';
-                        document.getElementById("person_name_span").textContent = '-';
-                        document.getElementById("page_name_span").textContent = '-';
-                        }
-
-                    setTimeout(change_frame_func, interval);
-                    FB.XFBML.parse();
-                    }
-                });
-            };
-
-        $(document).ready(change_frame_func());
-
-
-        var video = document.querySelector("#videoElement");
-        if (navigator.mediaDevices.getUserMedia) {navigator.mediaDevices.getUserMedia({video: true})
-            .then(function(stream) {
-            video.srcObject = stream;
-          })
-          .catch(function(err0r) {
-            console.log("Something went wrong!");
-          });
-        }
-    </script>
-
-    <style>
-        #container {
-            margin: 0px auto;
-            width: 500px;
-            height: 375px;
-            border: 10px #333 solid;
-        }
-        #videoElement {
-            width: 500px;
-            height: 375px;
-            background-color: #666;
-        }
-    </style>
 </head>
 
 
 <body>
-<table style="height: 100%;width:1000" align="center" border="1" cellspacing="0">
+<table style="height: 100%;width:1000px" align="center" border="1" cellspacing="0">
     <tr>
         <th width="500" valign="top">
             <h1>Smart Home Project</h1>
@@ -94,26 +19,138 @@
             - Up and down to scroll<br>
             - Left and right to swipe between liked pages.
             <br><br><br>
-            Status: <span id="status_span"></span><br>
+            Status: <span id="status_span">fgdchgfhhfgfhjfg</span><br>
             Recognized person: <span id="person_name_span"></span><br>
             Now showing page: <span id="page_name_span"></span><br>
             Recognized gesture: <span id="gesture_span"></span>
             <br><br><br>
-            Video Stream here
-            <div id="container">
-                <video autoplay="true" id="videoElement"></video>
-            </div>
+
+
+            <button id="screenshot-capture-button" onclick="start_capture()">capture</button>
+            <button id="screenshot-button">screenshot</button>
+            <video id="screenshot-video" autoplay></video>
+            <img id="screenshot-img" src=""><br>
+            <canvas style="display:none;"></canvas>
+
+            <script>
+                const constraints = {
+                  video: true
+                };
+
+                const captureVideoButton = document.querySelector('#screenshot-capture-button');
+                const screenshotButton = document.querySelector('#screenshot-button');
+                const img = document.querySelector('#screenshot-img');
+                const video = document.querySelector('#screenshot-video');
+                const canvas = document.createElement('canvas');
+
+                function start_capture() {
+                    navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
+                };
+
+                screenshotButton.onclick = video.onclick = function() {
+                    canvas.width = video.videoWidth;
+                    canvas.height = video.videoHeight;
+                    canvas.getContext('2d').drawImage(video, 0, 0);
+                    // Other browsers will fall back to image/png
+                    img.src = canvas.toDataURL('image/webp');
+                };
+
+                function handleSuccess(stream) {
+                    screenshotButton.disabled = false;
+                    video.srcObject = stream;
+                }
+
+                function handleError(error) {
+                    window.alert("sometext");
+                    console.error('Error: ', error);
+                }
+            </script>
+
         </th>
         <th width="500">
             <div id="fb-root"></div>
             <!-- note 500px is max length of fb plugin-->
             <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
-                 data-height="100%" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false"
+                 data-height="1000" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false"
                  data-show-facepile="true"></div>
         </th>
     </tr>
 </table>
 
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script>
+        (function(d, s, id) {
+            var js, fjs = d.getElementsByTagName(s)[0];
+            if (d.getElementById(id)) return;
+            js = d.createElement(s); js.id = id;
+            js.src = 'https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.1&appId=1721853424592137&autoLogAppEvents=1';
+            fjs.parentNode.insertBefore(js, fjs);
+            }(document, 'script', 'facebook-jssdk'));
+
+        function change_frame_func()
+            {
+            $.getJSON(
+                {
+                url: "/getNextFrame",
+                data: {},
+                success: function(result)
+                    {
+                    if (result.status == "recognizing")
+                        {
+                        document.getElementById("status_span").textContent = 'recognizing...';
+                        document.getElementById("person_name_span").textContent = '-';
+                        document.getElementById("page_name_span").textContent = '-';
+                        }
+                    else if (result.status == "recognized")
+                        {
+                        document.getElementById("status_span").textContent = 'Recognized.';
+                        document.getElementById("person_name_span").textContent = result.person_name;
+                        }
+                    else if (result.status == "new_fb_page")
+                        {
+                        $(".fb-page").attr('data-href', result.next_url);
+                        document.getElementById("page_name_span").textContent = result.page_name;
+                        }
+                    else
+                        {
+                        $(".fb-page").attr('data-href', '');
+                        document.getElementById("status_span").textContent = 'Waiting for orders.';
+                        document.getElementById("person_name_span").textContent = '-';
+                        document.getElementById("page_name_span").textContent = '-';
+                        }
+                    }
+                });
+            };
+
+        function get_person_name()
+        {
+            $.getJSON(
+                {
+                url: "/getPersonName",
+                data: {'image_src': document.getElementById('screenshot-img').src},
+                success: function(result){
+                            document.getElementById("person_name_span").textContent = result.person_name;}
+                });
+        };
+
+
+        var interval = 100; // miliseconds
+        var next_call = 0;
+        function run_with_timer()
+        {
+            if (next_call===0){
+                get_person_name();
+            } else {
+                change_frame_func();
+            }
+            next_call= (next_call + 1) % 2;
+            setTimeout(run_with_timer, interval);
+            FB.XFBML.parse();
+        }
+
+        $(document).ready(run_with_timer());
+
+    </script>
 
 </body>
 </html>
