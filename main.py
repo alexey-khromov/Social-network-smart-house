@@ -15,7 +15,6 @@ except KeyError:
    print("Please set the environment variables: USER_MAIL_PROJ, PASSWORD_PROJ")
    exit(1)
 
-
 #-------------------------------------------------------------------------------
 # Global Variables
 #-------------------------------------------------------------------------------
@@ -42,7 +41,7 @@ def getNextFrame():
 #-------------------------------------------------------------------------------
 
 @app.route("/getPrevFrame", methods=['GET'])
-def getNextFrame():
+def getPrevFrame():
     return _get_liked_page(likes_list_index-1)
 
 #-------------------------------------------------------------------------------
@@ -71,7 +70,6 @@ def getPersonName():
                        'status': 'recognizing'})
 
     return res
-
 
 #-------------------------------------------------------------------------------
 # Help Functions
@@ -132,7 +130,6 @@ def _create_likes_list():
             final_likes_dict[div_like_link.text] = div_like_link['href']
 
     sources = final_likes_dict
-
 
 #-------------------------------------------------------------------------------
 # Main Function
