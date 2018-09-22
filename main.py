@@ -3,6 +3,8 @@ from bs4 import BeautifulSoup, Comment
 from fbrecog import FBRecog
 import requests
 import os
+import urllib.request
+
 
 #-------------------------------------------------------------------------------
 # Environment Variables
@@ -20,9 +22,9 @@ except KeyError:
 #-------------------------------------------------------------------------------
 
 app = Flask(__name__, template_folder='./')
-global likes_list_index
-global sources
-global curr_friend_name
+likes_list_index = -1
+curr_friend_name = ''
+sources = {}
 
 #-------------------------------------------------------------------------------
 # Flask URLs
@@ -51,23 +53,29 @@ def getPersonName():
 
     global curr_friend_name
     path = request.args.get('image_src') # image link passed from javascript
-    access_token = 'EAAYeBD26ZAQkBAGZARk0n7FUJHr9ogTmdkEjprDgA7ZAIN2mb3KGM4JP4SDRujYIRz38OEqxJMB8HMzZCmiKt2pXS1ZCNK0xZCCnfwF6CJyq4YTgz2VlL84yL9ZBj5FameBL6d5uGGWCHPc8bjYC4mVOn0EMfZAuHZBEuh1q7faxyt8mfb2lROcYBRKEtU2Fvvn3VyMexAVZASOiigDgW9pAkQYFpXz59jxZCsZD'
-    cookies = 'datr=vyE3WK59AKHob24eJFofccbS; sb=1CE3WLBBfN52DzpYJW81Fl-E; ; dpr=1.25; locale=en_US; pl=n; spin=r.4337968_b.trunk_t.1537532329_s.1_v.2_; act=1537532373473%2F5; c_user=100027703129886; xs=16%3At3Ha5ucHq6yxLg%3A2%3A1537532374%3A13822%3A-1; fr=0BF4Qlml0lg3T6JpB.AWV3-y7bMhKTugzLs8JzD24V8NQ.Ba-_AL.PF.Fuk.0.0.BbpOHW.; presence=EDvF3EtimeF1537532378EuserFA21B27703129886A2EstateFDutF1537532378401CEchFDp_5f1B27703129886F2CC; wd=1110x1038'
-    fb_dtsg = 'AQHufDWSC85X:AQEW6RNDXeCH'
+    access_token = 'EAAYeBD26ZAQkBADfCM3fcQqOcMCAK84UlfVOlnZB0APgRgQi0XU54MNYlJ8GuOZChBDSZBKfAmkJuH4xI477ZAA4uFRquUb0z9MEHNG1fcXHCvN4BZAiOBISBTZA06SGpqRgZB7SXjLYZBvFykjlZCqaJPVbfVBXaljtwCr1oCAz7N6nCdA0w965KHDb0dftR6KocM8i8WKjJN3BKV1H9641KJfsZAb7Nyr46wZD'
+    cookies = 'datr=vyE3WK59AKHob24eJFofccbS; sb=1CE3WLBBfN52DzpYJW81Fl-E; locale=en_US; pl=n; spin=r.4342406_b.trunk_t.1537627084_s.1_v.2_; act=1537627842029%2F3; c_user=100027703129886; xs=16%3AYPAsGxXhmRO2Vw%3A2%3A1537627843%3A13822%3A-1; fr=0BF4Qlml0lg3T6JpB.AWXQ9_wabZ8f6tfmQtrjRwN_xkU.Ba-_AL.PF.Fum.0.0.BbplbC.; presence=EDvF3EtimeF1537627846EuserFA21B27703129886A2EstateFDutF1537627846949CEchFDp_5f1B27703129886F2CC; wd=1110x1038'
+    fb_dtsg = 'AQHAtSNnpE3I:AQHUMYNbksuj'
+    urllib.request.urlretrieve(path, "photo_for_recognition.png")
 
-    fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
-    recognized_Pfriends_list = fb_recog_obj.recognize(path)
-    if (len(recognized_Pfriends_list) > 0):
-        new_friend_name = recognized_Pfriends_list[0]['name']
-        if (curr_friend_name) and (new_friend_name != curr_friend_name):
-            curr_friend_name = new_friend_name
-            _create_likes_list()
-            likes_list_index = 0
-        res = {'person_name': curr_friend_name,
-               'status': 'recognized'}
-    else:
-        res = jsonify({'person_name': '',
-                       'status': 'recognizing'})
+    try:
+        #TODO: remove comments
+        #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
+        #recognized_friends_list = fb_recog_obj.recognize("photo_for_recognition.png")
+        recognized_friends_list = [{'name': 'James Bond'}]
+        if (len(recognized_friends_list) > 0):
+            new_friend_name = recognized_friends_list[0]['name']
+            if (new_friend_name) and (new_friend_name != curr_friend_name):
+                curr_friend_name = new_friend_name
+
+            res = jsonify({'person_name': curr_friend_name,
+                           'status': 'recognized'})
+        else:
+            res = jsonify({'person_name': '',
+                           'status': 'recognizing'})
+    except Exception as err:
+        print(err)
+        print('Error occured, please check the token, and verify you are connected.')
 
     return res
 
@@ -94,14 +102,16 @@ def _login(session, email, password):
 def _get_liked_page(next_index):
     global likes_list_index
     global sources
-    global curr_friend_name
 
-    like_index = next_index % len(sources)
+    if (sources == {}):
+        _create_likes_list()
+        likes_list_index = 0
+
+    likes_list_index = next_index % len(sources)
     next_page_name = list(sources.keys())[likes_list_index]
-    if likes_list_index > -1:
-        res = jsonify({'next_url': sources[next_page_name],
-                       'page_name': next_page_name,
-                       'status': 'new_fb_page'})
+    res = jsonify({'next_url': sources[next_page_name],
+                   'page_name': next_page_name,
+                   'status': 'new_fb_page'})
     return res
 
 #-------------------------------------------------------------------------------
