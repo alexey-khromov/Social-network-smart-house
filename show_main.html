@@ -6,6 +6,44 @@
 </head>
 
 <body>
+    <table style="height: 100%;width:1000px" align="center" border="1" cellspacing="0">
+        <tr>
+            <th width="500" valign="top">
+                <h1>Smart Home Project</h1>
+                <h3>Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
+                <br>
+                Please look straight at the camera to be recognized.<br>
+                Note: you must be friend with Smart Home on Facebook to use the application.<br>
+                After you've been recognized, use hand gestures:<br>
+                - Up and down to scroll<br>
+                - Left and right to swipe between liked pages.<br>
+                <br><br>
+
+                Status: <span id="status_span"></span><br>
+                Recognized person: <span id="person_name_span"></span><br>
+                Now showing page: <span id="page_name_span"></span><br>
+                Recognized gesture: <span id="gesture_span"></span><br>
+                <br><br>
+
+                <button id="screenshot-button">screenshot</button><br>
+                <video id="screenshot-video" autoplay width="200" height="200"></video><br>
+                <video id="mask-video" autoplay width="200" height="200"></video><br>
+                <canvas id="screenshot-canvas" style="display:none;"></canvas>
+                <img id="screenshot-img" src=""><br>
+                <canvas id="mask-canvas" style="display:none;"></canvas>
+                <img id="mask-img" src=""><br>
+
+            </th>
+            <th width="500">
+                <div id="fb-root"></div>
+                <!-- note 500px is max length of fb plugin-->
+                <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
+                     data-height="1000" data-small-header="false" data-adapt-container-width="true"
+                     data-hide-cover="false" data-show-facepile="true"></div>
+            </th>
+        </tr>
+    </table>
+
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script>
 
@@ -22,7 +60,7 @@
             fjs.parentNode.insertBefore(js, fjs);
         }(document, 'script', 'facebook-jssdk'));
 
-              // ----------------------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
         // Update FB page -------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
@@ -47,43 +85,7 @@
                     }
                 });
         }
-    </script>
 
-    <table style="height: 100%;width:1000px" align="center" border="1" cellspacing="0">
-        <tr>
-            <th width="500" valign="top">
-                <h1>Smart Home Project</h1>
-                <h3>Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
-                <br>
-                Please look straight at the camera to be recognized.<br>
-                Note: you must be friend with Smart Home on Facebook to use the application.<br>
-                After you've been recognized, use hand gestures:<br>
-                - Up and down to scroll<br>
-                - Left and right to swipe between liked pages.<br>
-                <br><br>
-
-                Status: <span id="status_span"></span><br>
-                Recognized person: <span id="person_name_span"></span><br>
-                Now showing page: <span id="page_name_span"></span><br>
-                Recognized gesture: <span id="gesture_span"></span><br>
-                <br><br>
-
-                <button id="screenshot-button">screenshot</button>
-                <video id="screenshot-video" autoplay width="200" height="200"></video>
-                <img id="screenshot-img" src="" width="200" height="200"><br>
-                <canvas style="display:none;"></canvas>
-            </th>
-            <th width="500">
-                <div id="fb-root"></div>
-                <!-- note 500px is max length of fb plugin-->
-                <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
-                     data-height="1000" data-small-header="false" data-adapt-container-width="true"
-                     data-hide-cover="false" data-show-facepile="true"></div>
-            </th>
-        </tr>
-    </table>
-
-    <script>
         // ----------------------------------------------------------------------------------------
         // Constants ------------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
@@ -92,19 +94,45 @@
         const screenshotButton = document.querySelector('#screenshot-button');
         const img = document.querySelector('#screenshot-img');
         const video = document.querySelector('#screenshot-video');
-        const canvas = document.createElement('canvas');
+        const video_mask = document.querySelector('#mask-video');
+        const canvas = document.querySelector('#screenshot-canvas');
+        const canvas_mask = document.querySelector('#mask-canvas');
 
         // ----------------------------------------------------------------------------------------
-        // Camera Streaming  ----------------------------------------------------------------------
+        // Camera Functionns  ---------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
         navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
         function handleSuccess(stream) {
             video.srcObject = stream;
+
+            grabFrames(stream, 1, (frame) => {
+                    const handMask = makeHandMask(frame);
+                    video_mask.srcObject = stream;
+                });
         }
         function handleError(error) {
             console.error('Error: ', error);
         }
+
+        const cv = require('../');
+        const { grabFrames } = require('./utils');
+        // segmenting by skin color (has to be adjusted)
+        const skinColorUpper = hue => new cv.Vec(hue, 0.8 * 255, 0.6 * 255);
+        const skinColorLower = hue => new cv.Vec(hue, 0.1 * 255, 0.05 * 255);
+
+        const makeHandMask = (my_img) => {
+            // filter by skin color
+            const imgHLS = my_img.cvtColor(cv.COLOR_BGR2HLS);
+            const rangeMask = imgHLS.inRange(skinColorLower(0), skinColorUpper(15));
+
+            // remove noise
+            const blurred = rangeMask.blur(new cv.Size(10, 10));
+            const thresholded = blurred.threshold(200, 255, cv.THRESH_BINARY);
+
+            return thresholded;
+            };
+
 
         // ----------------------------------------------------------------------------------------
         // Screenshot  ----------------------------------------------------------------------------
@@ -114,10 +142,11 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            // Other browsers will fall back to image/png
             img.src = canvas.toDataURL('image/png');
-            get_person_name();
-            get_next_page('next');
+
+            check_gestures();
+            //get_person_name();
+            //get_next_page('next');
         }
 
         // ----------------------------------------------------------------------------------------
@@ -146,7 +175,7 @@
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 4000; // miliseconds
+        var interval = 2000; // miliseconds
         var next_call = 0;
         function run_with_timer() {
             /*
@@ -157,8 +186,8 @@
             }
             next_call = (next_call + 1) % 2;
             */
-            setTimeout(run_with_timer, interval);
-            FB.XFBML.parse();
+            //FB.XFBML.parse();
+            //setTimeout(run_with_timer, interval);
         }
 
         $(document).ready(run_with_timer());
