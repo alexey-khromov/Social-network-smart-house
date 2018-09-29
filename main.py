@@ -4,7 +4,10 @@ from fbrecog import FBRecog
 import requests
 import os
 import urllib.request
-
+import cv2
+import numpy as np
+from PIL import Image, ImageChops
+import time
 
 #-------------------------------------------------------------------------------
 # Environment Variables
@@ -14,21 +17,26 @@ try:
     USERNAME = os.environ['USER_MAIL_PROJ']
     PASSWORD = os.environ['PASSWORD_PROJ']
 except KeyError:
-   print("Please set the environment variables: USER_MAIL_PROJ, PASSWORD_PROJ")
-   exit(1)
+    print("Please set the environment variables: USER_MAIL_PROJ, PASSWORD_PROJ")
+    exit(1)
 
 #-------------------------------------------------------------------------------
 # Global Variables
 #-------------------------------------------------------------------------------
 
+SEQUEL_PHOTOS_TO_KEEP = 5
+PHOTO_NAME_PATTERN = "photo_for_interp_{0}.png"
 app = Flask(__name__, template_folder='./')
 likes_list_index = -1
 curr_friend_name = ''
+sequel_images_counter = 0
+is_first_photo = True
 sources = {}
 
 #-------------------------------------------------------------------------------
 # Flask URLs
 #-------------------------------------------------------------------------------
+
 
 @app.route('/')
 def render_static():
@@ -36,11 +44,13 @@ def render_static():
 
 #-------------------------------------------------------------------------------
 
+
 @app.route("/getNextFrame", methods=['GET'])
 def getNextFrame():
     return _get_liked_page(likes_list_index+1)
 
 #-------------------------------------------------------------------------------
+
 
 @app.route("/getPrevFrame", methods=['GET'])
 def getPrevFrame():
@@ -48,14 +58,36 @@ def getPrevFrame():
 
 #-------------------------------------------------------------------------------
 
+
+@app.route("/getHandGesture", methods=['GET','POST'])
+def getHandGesture():
+    global sequel_images_counter
+    path = request.args.get('image_src') # image link passed from javascript
+    prev_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
+    sequel_images_counter = (sequel_images_counter % SEQUEL_PHOTOS_TO_KEEP) + 1
+    next_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
+    urllib.request.urlretrieve(path, next_photo_name)
+
+    global is_first_photo
+    res = 'identifying gestures...'
+    if is_first_photo:
+        is_first_photo = False
+    else:
+        res = _get_hand_gesture(prev_photo_name, next_photo_name)
+
+    return jsonify({'gesture_name': res})
+
+#-------------------------------------------------------------------------------
+
+
 @app.route("/getPersonName", methods=['GET','POST'])
 def getPersonName():
 
     global curr_friend_name
-    path = request.args.get('image_src') # image link passed from javascript
     access_token = 'EAAYeBD26ZAQkBADfCM3fcQqOcMCAK84UlfVOlnZB0APgRgQi0XU54MNYlJ8GuOZChBDSZBKfAmkJuH4xI477ZAA4uFRquUb0z9MEHNG1fcXHCvN4BZAiOBISBTZA06SGpqRgZB7SXjLYZBvFykjlZCqaJPVbfVBXaljtwCr1oCAz7N6nCdA0w965KHDb0dftR6KocM8i8WKjJN3BKV1H9641KJfsZAb7Nyr46wZD'
     cookies = 'datr=vyE3WK59AKHob24eJFofccbS; sb=1CE3WLBBfN52DzpYJW81Fl-E; locale=en_US; pl=n; spin=r.4342406_b.trunk_t.1537627084_s.1_v.2_; act=1537627842029%2F3; c_user=100027703129886; xs=16%3AYPAsGxXhmRO2Vw%3A2%3A1537627843%3A13822%3A-1; fr=0BF4Qlml0lg3T6JpB.AWXQ9_wabZ8f6tfmQtrjRwN_xkU.Ba-_AL.PF.Fum.0.0.BbplbC.; presence=EDvF3EtimeF1537627846EuserFA21B27703129886A2EstateFDutF1537627846949CEchFDp_5f1B27703129886F2CC; wd=1110x1038'
     fb_dtsg = 'AQHAtSNnpE3I:AQHUMYNbksuj'
+    path = request.args.get('image_src') # image link passed from javascript
     urllib.request.urlretrieve(path, "photo_for_recognition.png")
 
     try:
@@ -83,6 +115,7 @@ def getPersonName():
 # Help Functions
 #-------------------------------------------------------------------------------
 
+
 def _login(session, email, password):
     '''
     Attempt to login to Facebook. Returns cookies given to a user
@@ -99,11 +132,12 @@ def _login(session, email, password):
 
 #-------------------------------------------------------------------------------
 
+
 def _get_liked_page(next_index):
     global likes_list_index
     global sources
 
-    if (sources == {}):
+    if sources == {}:
         _create_likes_list()
         likes_list_index = 0
 
@@ -115,6 +149,7 @@ def _get_liked_page(next_index):
     return res
 
 #-------------------------------------------------------------------------------
+
 
 def _create_likes_list():
     global curr_friend_name
@@ -142,10 +177,76 @@ def _create_likes_list():
     sources = final_likes_dict
 
 #-------------------------------------------------------------------------------
+
+
+def _get_hand_gesture(img_name_first, img_name_second):
+    try:
+        img_first = cv2.imread(img_name_first)
+        img_second = cv2.imread(img_name_second)
+
+        gray_img_first = cv2.cvtColor(img_first, cv2.COLOR_BGR2GRAY)
+        gray_img_second = cv2.cvtColor(img_second, cv2.COLOR_BGR2GRAY)
+
+        blur_img_first = cv2.GaussianBlur(gray_img_first, (5, 5), 0)
+        blur_img_second = cv2.GaussianBlur(gray_img_second, (5, 5), 0)
+
+        ret, thresh_img_first = cv2.threshold(blur_img_first, 150, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
+        ret, thresh_img_second = cv2.threshold(blur_img_second, 150, 255, cv2.THRESH_BINARY) # + cv2.THRESH_OTSU
+
+        # ---Compute the center/mean of the contours---
+        points_first = cv2.findNonZero(thresh_img_first)
+        curr_avg_first = np.mean(points_first, axis=0)
+
+        points_second = cv2.findNonZero(thresh_img_second)
+        curr_avg_second = np.mean(points_second, axis=0)
+
+        prev_pos = curr_avg_first.tolist()[0]
+        cur_pos = curr_avg_second.tolist()[0]
+        print(prev_pos)
+        print(cur_pos)
+
+        #cv2.imshow('image1', thresh_img_first)
+        #cv2.imshow('image2', thresh_img_second)
+        #cv2.waitKey(0)
+
+        return _compare_images_for_gesture(prev_pos, cur_pos)
+
+    except Exception as err:
+        print(err)
+
+#-------------------------------------------------------------------------------
+
+
+def _compare_images_for_gesture(first_avg, second_avg):
+
+    delta_x, delta_y = first_avg[0] - second_avg[0], first_avg[1] - second_avg[1]
+
+    res = "no gesture found"
+    treshold_ver = 10
+    treshold_hor = 30
+
+    direction = 'ver' if abs(delta_y) > abs(delta_x) else 'hor'
+    if direction == 'ver':
+        if delta_y < -treshold_ver:
+            res = 'scroll_up'
+        elif delta_y > treshold_ver:
+            res = 'scroll_down'
+    else:
+        if delta_x < -treshold_hor:
+            res = 'swipe_right'
+        elif delta_x > treshold_hor:
+            res = 'swipe_left'
+
+
+    return res
+
+#-------------------------------------------------------------------------------
 # Main Function
 #-------------------------------------------------------------------------------
 
+
 if __name__ == '__main__':
     app.run(debug=True)
+
 
 

@@ -26,15 +26,13 @@
                 <br><br>
 
                 <button id="screenshot-button">screenshot</button><br>
-                <video id="screenshot-video" autoplay width="200" height="200"></video><br>
-                <video id="mask-video" autoplay width="200" height="200"></video><br>
+                <video id="screenshot-video" autoplay width="450" height="450"></video><br>
                 <canvas id="screenshot-canvas" style="display:none;"></canvas>
                 <img id="screenshot-img" src=""><br>
-                <canvas id="mask-canvas" style="display:none;"></canvas>
-                <img id="mask-img" src=""><br>
 
             </th>
             <th width="500">
+                <!--<iframe id="fb_page_frame">-->
                 <div id="fb-root"></div>
                 <!-- note 500px is max length of fb plugin-->
                 <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
@@ -45,7 +43,17 @@
     </table>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
+    <script src="opencv.js" type="text/javascript"></script>
     <script>
+
+        // ----------------------------------------------------------------------------------------
+        // Constants ------------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        const constraints = {video: true};
+        const img = document.querySelector('#screenshot-img');
+        const video = document.querySelector('#screenshot-video');
+        const canvas = document.querySelector('#screenshot-canvas');
 
         // ----------------------------------------------------------------------------------------
         // Facebook Window ------------------------------------------------------------------------
@@ -87,69 +95,6 @@
         }
 
         // ----------------------------------------------------------------------------------------
-        // Constants ------------------------------------------------------------------------------
-        // ----------------------------------------------------------------------------------------
-
-        const constraints = {video: true};
-        const screenshotButton = document.querySelector('#screenshot-button');
-        const img = document.querySelector('#screenshot-img');
-        const video = document.querySelector('#screenshot-video');
-        const video_mask = document.querySelector('#mask-video');
-        const canvas = document.querySelector('#screenshot-canvas');
-        const canvas_mask = document.querySelector('#mask-canvas');
-
-        // ----------------------------------------------------------------------------------------
-        // Camera Functionns  ---------------------------------------------------------------------
-        // ----------------------------------------------------------------------------------------
-
-        navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
-        function handleSuccess(stream) {
-            video.srcObject = stream;
-
-            grabFrames(stream, 1, (frame) => {
-                    const handMask = makeHandMask(frame);
-                    video_mask.srcObject = stream;
-                });
-        }
-        function handleError(error) {
-            console.error('Error: ', error);
-        }
-
-        const cv = require('../');
-        const { grabFrames } = require('./utils');
-        // segmenting by skin color (has to be adjusted)
-        const skinColorUpper = hue => new cv.Vec(hue, 0.8 * 255, 0.6 * 255);
-        const skinColorLower = hue => new cv.Vec(hue, 0.1 * 255, 0.05 * 255);
-
-        const makeHandMask = (my_img) => {
-            // filter by skin color
-            const imgHLS = my_img.cvtColor(cv.COLOR_BGR2HLS);
-            const rangeMask = imgHLS.inRange(skinColorLower(0), skinColorUpper(15));
-
-            // remove noise
-            const blurred = rangeMask.blur(new cv.Size(10, 10));
-            const thresholded = blurred.threshold(200, 255, cv.THRESH_BINARY);
-
-            return thresholded;
-            };
-
-
-        // ----------------------------------------------------------------------------------------
-        // Screenshot  ----------------------------------------------------------------------------
-        // ----------------------------------------------------------------------------------------
-
-        screenshotButton.onclick = video.onclick = function() {
-            canvas.width = video.videoWidth;
-            canvas.height = video.videoHeight;
-            canvas.getContext('2d').drawImage(video, 0, 0);
-            img.src = canvas.toDataURL('image/png');
-
-            check_gestures();
-            //get_person_name();
-            //get_next_page('next');
-        }
-
-        // ----------------------------------------------------------------------------------------
         // Check current user  --------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
@@ -172,27 +117,80 @@
         }
 
         // ----------------------------------------------------------------------------------------
+        // Check gesture  -------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function get_gesture() {
+            $.getJSON(
+                {
+                    url: "/getHandGesture",
+                    data: {'image_src': document.getElementById('screenshot-img').src},
+                    success: function (result) {
+
+                        var ges_name = result.gesture_name;
+                        document.getElementById("status_span").textContent = ges_name;
+                        if (ges_name === 'scroll_down') {
+
+                        } else if (ges_name === 'scrooll_up') {
+
+                        } else if (ges_name === 'swipe_right') {
+                            //get_next_page('next');
+                        } else if (ges_name === 'swipe_left') {
+                            //get_next_page('prev');
+                        }
+                    }
+                });
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // Camera Functionns  ---------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
+        function handleSuccess(stream) {
+            video.srcObject = stream;
+        }
+        function handleError(error) {
+            console.error('Error: ', error);
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // Screenshot  ----------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function get_screenshot()
+        {
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            canvas.getContext('2d').drawImage(video, 0, 0);
+            img.src = canvas.toDataURL('image/png');
+        }
+
+        // ----------------------------------------------------------------------------------------
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 2000; // miliseconds
-        var next_call = 0;
+        var interval = 500; // miliseconds
+        var calls_counter = 0;
+        var first_run = true;
         function run_with_timer() {
-            /*
-            if (next_call === 0) {
-                get_person_name();
+            get_screenshot();
+            if (first_run) {
+                first_run = false;
             } else {
-                get_next_page('next');
+                if (calls_counter === 4) {
+                    get_person_name();
+                } else {
+                    get_gesture();
+                }
+                calls_counter = (calls_counter + 1) % 5;
             }
-            next_call = (next_call + 1) % 2;
-            */
-            //FB.XFBML.parse();
-            //setTimeout(run_with_timer, interval);
+
+            setTimeout(run_with_timer, interval);
+            FB.XFBML.parse();
         }
 
         $(document).ready(run_with_timer());
-
     </script>
-
 </body>
 </html>
