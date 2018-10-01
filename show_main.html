@@ -73,6 +73,7 @@
         // ----------------------------------------------------------------------------------------
 
         function get_next_page(direction) {
+
             if (direction==='next') {
                 url_func = "/getNextFrame";
             } else if (direction==='prev') {
@@ -130,17 +131,23 @@
                         var ges_name = result.gesture_name;
                         document.getElementById("status_span").textContent = ges_name;
                         if (ges_name === 'scroll_down') {
-
-                        } else if (ges_name === 'scrooll_up') {
-
+                            $(".fb-page").scroll(0,200);    //TODO: fix, doesnt get the inside scroll
+                        } else if (ges_name === 'scroll_up') {
+                            $(".fb-page").scroll(0,-200);   //TODO: fix, doesnt get the inside scroll
                         } else if (ges_name === 'swipe_right') {
-                            //get_next_page('next');
+                            get_next_page('next');
                         } else if (ges_name === 'swipe_left') {
-                            //get_next_page('prev');
+                            get_next_page('prev');
                         }
                     }
                 });
         }
+
+        function _temp()
+        {
+            window.alert('im here');
+        }
+
 
         // ----------------------------------------------------------------------------------------
         // Camera Functionns  ---------------------------------------------------------------------
@@ -173,13 +180,19 @@
         var interval = 500; // miliseconds
         var calls_counter = 0;
         var first_run = true;
+        var first_recognition = true;
+
         function run_with_timer() {
             get_screenshot();
             if (first_run) {
                 first_run = false;
             } else {
-                if (calls_counter === 4) {
+                if (calls_counter === 2) {
                     get_person_name();
+                    if (first_recognition) {
+                       get_next_page('next');
+                       first_recognition == false;
+                    }
                 } else {
                     get_gesture();
                 }

@@ -84,14 +84,13 @@ def getHandGesture():
 def getPersonName():
 
     global curr_friend_name
-    access_token = 'EAAYeBD26ZAQkBADfCM3fcQqOcMCAK84UlfVOlnZB0APgRgQi0XU54MNYlJ8GuOZChBDSZBKfAmkJuH4xI477ZAA4uFRquUb0z9MEHNG1fcXHCvN4BZAiOBISBTZA06SGpqRgZB7SXjLYZBvFykjlZCqaJPVbfVBXaljtwCr1oCAz7N6nCdA0w965KHDb0dftR6KocM8i8WKjJN3BKV1H9641KJfsZAb7Nyr46wZD'
-    cookies = 'datr=vyE3WK59AKHob24eJFofccbS; sb=1CE3WLBBfN52DzpYJW81Fl-E; locale=en_US; pl=n; spin=r.4342406_b.trunk_t.1537627084_s.1_v.2_; act=1537627842029%2F3; c_user=100027703129886; xs=16%3AYPAsGxXhmRO2Vw%3A2%3A1537627843%3A13822%3A-1; fr=0BF4Qlml0lg3T6JpB.AWXQ9_wabZ8f6tfmQtrjRwN_xkU.Ba-_AL.PF.Fum.0.0.BbplbC.; presence=EDvF3EtimeF1537627846EuserFA21B27703129886A2EstateFDutF1537627846949CEchFDp_5f1B27703129886F2CC; wd=1110x1038'
-    fb_dtsg = 'AQHAtSNnpE3I:AQHUMYNbksuj'
+    access_token = 'EAAYeBD26ZAQkBAG8Uphw9jhsbZCxUL5gaKZCP69iQOWpRkGrLW9sGclNQ90yBZAJhb6qc9n5YH2HTeEbIC3joYZAZB0QLwdE5FTaiZAIiHyEWscmLtVLqcMKZBl5Kqm2hGtS7kFH2UCH7pPtHMu727Ext3rcKindlYlfFLohpboLZCaVjeAbKuSX7JkSPB1BZAkkDINJz0U6DU8jN8Sgjn4WpdUQi2iGVZAeloZD'
+    cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; pl=n; dpr=1.75; spin=r.4367964_b.trunk_t.1538380847_s.1_v.2_; c_user=100027703129886; xs=16%3A2Zf8wyCzfZSO5Q%3A2%3A1538382512%3A13822%3A-1; fr=0wfDpjdR3vG29Yo3f.AWXF6IdAyo2AtuvKqiEtcU_yoaM.Ba8EL2.K_.AAA.0.0.Bbsdqw.AWX2tor5; act=1538382491391%2F0; presence=EDvF3EtimeF1538382491EuserFA21B27703129886A2EstateFDutF1538382491553CEchFDp_5f1B27703129886F4CC; wd=884x742'
+    fb_dtsg = 'AQF0PNORNBXH:AQHjb-SoMx_S'
     path = request.args.get('image_src') # image link passed from javascript
     urllib.request.urlretrieve(path, "photo_for_recognition.png")
 
     try:
-        #TODO: remove comments
         #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
         #recognized_friends_list = fb_recog_obj.recognize("photo_for_recognition.png")
         recognized_friends_list = [{'name': 'James Bond'}]
