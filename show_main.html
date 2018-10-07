@@ -25,19 +25,18 @@
                 Recognized gesture: <span id="gesture_span"></span><br>
                 <br><br>
 
-                <button id="screenshot-button">screenshot</button><br>
                 <video id="screenshot-video" autoplay width="450" height="450"></video><br>
                 <canvas id="screenshot-canvas" style="display:none;"></canvas>
-                <img id="screenshot-img" src=""><br>
+                <img id="screenshot-img" src="" hidden="hidden"><br>
 
             </th>
             <th width="500">
-                <!--<iframe id="fb_page_frame">-->
                 <div id="fb-root"></div>
-                <!-- note 500px is max length of fb plugin-->
-                <div class="fb-page" data-href="" data-tabs="timeline" data-send="false" data-width="500"
-                     data-height="1000" data-small-header="false" data-adapt-container-width="true"
-                     data-hide-cover="false" data-show-facepile="true"></div>
+                <!-- note 500px is max width of fb plugin-->
+                <div class="fb-page" style="height: 1000px; width: 500px;" data-href=""
+                     data-tabs="timeline" data-send="false" data-height="1000" data-width="500"
+                     data-small-header="false" data-adapt-container-width="true"
+                     data-hide-cover="false" data-show-facepile="true" id="my-fb-page"></div>
             </th>
         </tr>
     </table>
@@ -58,6 +57,15 @@
         // ----------------------------------------------------------------------------------------
         // Facebook Window ------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
+
+         window.fbAsyncInit = function() {
+            FB.init({
+              appId            : 'your-app-id',
+              autoLogAppEvents : true,
+              xfbml            : true,
+              version          : 'v3.1'
+            });
+          };
 
         (function(d, s, id) {
             var js, fjs = d.getElementsByTagName(s)[0];
@@ -90,6 +98,7 @@
                         if (result.status == "new_fb_page") {
                             $(".fb-page").attr('data-href', result.next_url);
                             document.getElementById("page_name_span").textContent = result.page_name;
+                            FB.XFBML.parse();
                         }
                     }
                 });
@@ -112,6 +121,9 @@
                         else if (result.status === "recognized") {
                             document.getElementById("status_span").textContent = 'Recognized.';
                         }
+                        else if (result.status === "recognized_new") {
+                            get_next_page('next');
+                        }
                         document.getElementById("person_name_span").textContent = result.person_name;
                     }
                 });
@@ -131,9 +143,13 @@
                         var ges_name = result.gesture_name;
                         document.getElementById("status_span").textContent = ges_name;
                         if (ges_name === 'scroll_down') {
-                            $(".fb-page").scroll(0,200);    //TODO: fix, doesnt get the inside scroll
+                            // TODO: fix - nothing works
+                            FB.canvas.scrollTo(100, 100);
+                            document.getElementById("your-app-id").scrollTo(100, 100);
                         } else if (ges_name === 'scroll_up') {
-                            $(".fb-page").scroll(0,-200);   //TODO: fix, doesnt get the inside scroll
+                            // TODO: fix - nothing works
+                            FB.canvas.scrollTo(-100, -100);
+                            document.getElementById("your-app-id").scrollTo(-100, -100);
                         } else if (ges_name === 'swipe_right') {
                             get_next_page('next');
                         } else if (ges_name === 'swipe_left') {
@@ -142,12 +158,6 @@
                     }
                 });
         }
-
-        function _temp()
-        {
-            window.alert('im here');
-        }
-
 
         // ----------------------------------------------------------------------------------------
         // Camera Functionns  ---------------------------------------------------------------------
@@ -170,37 +180,34 @@
             canvas.width = video.videoWidth;
             canvas.height = video.videoHeight;
             canvas.getContext('2d').drawImage(video, 0, 0);
-            img.src = canvas.toDataURL('image/png');
+            img.src = canvas.toDataURL('image/jpeg');
         }
 
         // ----------------------------------------------------------------------------------------
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 500; // miliseconds
+        var interval = 250; // miliseconds
+        var cycles_till_recognition = 2000 / interval; // we want recognition once in 2 seconds
         var calls_counter = 0;
-        var first_run = true;
-        var first_recognition = true;
+        var first_cycles_run_counter = 0;
 
         function run_with_timer() {
-            get_screenshot();
-            if (first_run) {
-                first_run = false;
+
+            if (first_cycles_run_counter < 5) { // async - takes time for first picture to load
+                first_cycles_run_counter++;
+                get_screenshot();
             } else {
-                if (calls_counter === 2) {
+                get_screenshot();
+                if (calls_counter === 0) {
                     get_person_name();
-                    if (first_recognition) {
-                       get_next_page('next');
-                       first_recognition == false;
-                    }
                 } else {
                     get_gesture();
                 }
-                calls_counter = (calls_counter + 1) % 5;
+                calls_counter = (calls_counter + 1) % cycles_till_recognition;
             }
 
             setTimeout(run_with_timer, interval);
-            FB.XFBML.parse();
         }
 
         $(document).ready(run_with_timer());

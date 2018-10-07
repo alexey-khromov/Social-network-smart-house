@@ -6,8 +6,6 @@ import os
 import urllib.request
 import cv2
 import numpy as np
-from PIL import Image, ImageChops
-import time
 
 #-------------------------------------------------------------------------------
 # Environment Variables
@@ -84,31 +82,35 @@ def getHandGesture():
 def getPersonName():
 
     global curr_friend_name
-    access_token = 'EAAYeBD26ZAQkBAG8Uphw9jhsbZCxUL5gaKZCP69iQOWpRkGrLW9sGclNQ90yBZAJhb6qc9n5YH2HTeEbIC3joYZAZB0QLwdE5FTaiZAIiHyEWscmLtVLqcMKZBl5Kqm2hGtS7kFH2UCH7pPtHMu727Ext3rcKindlYlfFLohpboLZCaVjeAbKuSX7JkSPB1BZAkkDINJz0U6DU8jN8Sgjn4WpdUQi2iGVZAeloZD'
-    cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; pl=n; dpr=1.75; spin=r.4367964_b.trunk_t.1538380847_s.1_v.2_; c_user=100027703129886; xs=16%3A2Zf8wyCzfZSO5Q%3A2%3A1538382512%3A13822%3A-1; fr=0wfDpjdR3vG29Yo3f.AWXF6IdAyo2AtuvKqiEtcU_yoaM.Ba8EL2.K_.AAA.0.0.Bbsdqw.AWX2tor5; act=1538382491391%2F0; presence=EDvF3EtimeF1538382491EuserFA21B27703129886A2EstateFDutF1538382491553CEchFDp_5f1B27703129886F4CC; wd=884x742'
-    fb_dtsg = 'AQF0PNORNBXH:AQHjb-SoMx_S'
+    #access_token = 'EAAYeBD26ZAQkBAIBj4g8UGrqiduIes747RJdR0ZB6cN2EUZAyZBJZCxBFqrkLRj57xRLU9kvQ0IMnXR1BqpLC1ZB4Fjl3gQX3ueVPJX1al9ah7WFdK2zVyryfMpp85JKMuygNxj78Kfj2K4pIPoUZAEL3mtIQcdkTjnL9sS84morcjdDWbjPTEdbgl3ZAEFvZBcRXREYbF1eO2X6VAHksIT06TX5YYUWHgAYZD'
+    #cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
+    #fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
     path = request.args.get('image_src') # image link passed from javascript
-    urllib.request.urlretrieve(path, "photo_for_recognition.png")
+    urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
 
+    return_dict = {'person_name': curr_friend_name,
+                   'status': 'recognizing'}
     try:
         #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
-        #recognized_friends_list = fb_recog_obj.recognize("photo_for_recognition.png")
+        #picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
+        #recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
         recognized_friends_list = [{'name': 'James Bond'}]
+
         if (len(recognized_friends_list) > 0):
             new_friend_name = recognized_friends_list[0]['name']
             if (new_friend_name) and (new_friend_name != curr_friend_name):
                 curr_friend_name = new_friend_name
+                return_dict['status'] = 'recognized_new'
+            else:
+                return_dict['status'] = 'recognized'
+            return_dict['person_name'] = curr_friend_name
 
-            res = jsonify({'person_name': curr_friend_name,
-                           'status': 'recognized'})
-        else:
-            res = jsonify({'person_name': '',
-                           'status': 'recognizing'})
     except Exception as err:
         print(err)
         print('Error occured, please check the token, and verify you are connected.')
 
-    return res
+    return jsonify(return_dict)
+
 
 #-------------------------------------------------------------------------------
 # Help Functions
@@ -155,7 +157,9 @@ def _create_likes_list():
     global sources
 
     session = requests.session()
-    cookies = _login(session, USERNAME, PASSWORD)
+    username = USERNAME
+    password = PASSWORD
+    cookies = _login(session, username, password)
     splitted_name_of_curr_friend = 'Asia Zhivov'.lower().split(' ') # TODO: curr_friend_name
     dotted_name_of_curr_friend = splitted_name_of_curr_friend[0] + '.' + splitted_name_of_curr_friend[-1]
     likes_url = 'https://www.facebook.com/' + dotted_name_of_curr_friend +'/likes?lst=1198688678%3A843054236%3A1535896155'
@@ -189,8 +193,10 @@ def _get_hand_gesture(img_name_first, img_name_second):
         blur_img_first = cv2.GaussianBlur(gray_img_first, (5, 5), 0)
         blur_img_second = cv2.GaussianBlur(gray_img_second, (5, 5), 0)
 
-        ret, thresh_img_first = cv2.threshold(blur_img_first, 150, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
-        ret, thresh_img_second = cv2.threshold(blur_img_second, 150, 255, cv2.THRESH_BINARY) # + cv2.THRESH_OTSU
+
+        ret, thresh_img_first = cv2.threshold(blur_img_first, 100, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
+        ret, thresh_img_second = cv2.threshold(blur_img_second, 100, 255, cv2.THRESH_BINARY) # + cv2.THRESH_OTSU
+
 
         # ---Compute the center/mean of the contours---
         points_first = cv2.findNonZero(thresh_img_first)
@@ -199,10 +205,9 @@ def _get_hand_gesture(img_name_first, img_name_second):
         points_second = cv2.findNonZero(thresh_img_second)
         curr_avg_second = np.mean(points_second, axis=0)
 
+
         prev_pos = curr_avg_first.tolist()[0]
         cur_pos = curr_avg_second.tolist()[0]
-        print(prev_pos)
-        print(cur_pos)
 
         #cv2.imshow('image1', thresh_img_first)
         #cv2.imshow('image2', thresh_img_second)
