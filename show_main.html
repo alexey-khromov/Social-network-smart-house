@@ -58,15 +58,6 @@
         // Facebook Window ------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
-         window.fbAsyncInit = function() {
-            FB.init({
-              appId            : 'your-app-id',
-              autoLogAppEvents : true,
-              xfbml            : true,
-              version          : 'v3.1'
-            });
-          };
-
         (function(d, s, id) {
             var js, fjs = d.getElementsByTagName(s)[0];
             if (d.getElementById(id)) return;
@@ -145,11 +136,11 @@
                         if (ges_name === 'scroll_down') {
                             // TODO: fix - nothing works
                             FB.canvas.scrollTo(100, 100);
-                            document.getElementById("your-app-id").scrollTo(100, 100);
+                            document.getElementById("my-fb-page").scrollTo(100, 100);
                         } else if (ges_name === 'scroll_up') {
                             // TODO: fix - nothing works
                             FB.canvas.scrollTo(-100, -100);
-                            document.getElementById("your-app-id").scrollTo(-100, -100);
+                            document.getElementById("my-fb-page").scrollTo(-100, -100);
                         } else if (ges_name === 'swipe_right') {
                             get_next_page('next');
                         } else if (ges_name === 'swipe_left') {
