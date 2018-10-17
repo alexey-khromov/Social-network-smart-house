@@ -179,7 +179,7 @@
         // ----------------------------------------------------------------------------------------
 
         var interval = 250; // miliseconds
-        var cycles_till_recognition = 2000 / interval; // we want recognition once in 2 seconds
+        var cycles_till_recognition = 5000 / interval; // we want recognition once in 5 seconds
         var calls_counter = 0;
         var first_cycles_run_counter = 0;
 
@@ -190,8 +190,9 @@
                 get_screenshot();
             } else {
                 get_screenshot();
-                if (calls_counter === 0) {
+                if (calls_counter === cycles_till_recognition - 1) {
                     get_person_name();
+                    return;
                 } else {
                     get_gesture();
                 }

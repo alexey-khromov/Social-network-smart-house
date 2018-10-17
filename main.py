@@ -22,7 +22,7 @@ except KeyError:
 # Global Variables
 #-------------------------------------------------------------------------------
 
-SEQUEL_PHOTOS_TO_KEEP = 5
+SEQUEL_PHOTOS_TO_KEEP = 2
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.png"
 app = Flask(__name__, template_folder='./')
 likes_list_index = -1
@@ -82,18 +82,18 @@ def getHandGesture():
 def getPersonName():
 
     global curr_friend_name
-    #access_token = 'EAAYeBD26ZAQkBAIBj4g8UGrqiduIes747RJdR0ZB6cN2EUZAyZBJZCxBFqrkLRj57xRLU9kvQ0IMnXR1BqpLC1ZB4Fjl3gQX3ueVPJX1al9ah7WFdK2zVyryfMpp85JKMuygNxj78Kfj2K4pIPoUZAEL3mtIQcdkTjnL9sS84morcjdDWbjPTEdbgl3ZAEFvZBcRXREYbF1eO2X6VAHksIT06TX5YYUWHgAYZD'
-    #cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
-    #fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
+    access_token = 'EAAYeBD26ZAQkBAAhmSmnqnY4rePWd7Pm41Kf7tJrbvLZBfbs8KgDU5Ymox6O9zZBT3c8vg8aTzdChmMfYeE44Vj4UkSMiVnBUs1RjZCm4IDxCZBfahGMJGGF34TMgiXoXmMZCnihRl9qHZCKjGMCt3kkutKmRClhXTsYwgGxsloXZBpkBUd6lPNj2691Q5TjYpLhpZBZCei5hMM9JPsF3RtPZCT'
+    cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
+    fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
     path = request.args.get('image_src') # image link passed from javascript
     urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
 
     return_dict = {'person_name': curr_friend_name,
                    'status': 'recognizing'}
     try:
-        #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
-        #picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
-        #recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
+        fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
+        picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
+        recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
         recognized_friends_list = [{'name': 'James Bond'}]
 
         if (len(recognized_friends_list) > 0):
