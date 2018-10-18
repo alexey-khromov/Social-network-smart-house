@@ -13,7 +13,7 @@ import numpy as np
 #-------------------------------------------------------------------------------
 
 SEQUEL_PHOTOS_TO_KEEP = 2
-ITERATIONS_BETWEEN_RECOGNITION = 8
+ITERATIONS_BETWEEN_RECOGNITION = 4
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.jpg"
 
 #-------------------------------------------------------------------------------
@@ -66,7 +66,7 @@ def interpret_photo():
     curr_iteration = (curr_iteration + 1) % ITERATIONS_BETWEEN_RECOGNITION
     if curr_iteration % ITERATIONS_BETWEEN_RECOGNITION == 0:
         urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
-        new_friend_name = get_person_name()
+        new_friend_name = _get_person_name()
         if new_friend_name and (new_friend_name != curr_friend_name):
             curr_friend_name = new_friend_name
             liked_page_index = 0
@@ -85,7 +85,7 @@ def interpret_photo():
         urllib.request.urlretrieve(path, next_photo_name)
 
         if not is_first_photo:
-            res_dict = interpret_hand_gesture(prev_photo_name, next_photo_name)
+            res_dict = _interpret_hand_gesture(prev_photo_name, next_photo_name)
         else:
             is_first_photo = False
 
@@ -95,7 +95,7 @@ def interpret_photo():
 # Help Functions
 #-------------------------------------------------------------------------------
 
-def get_person_name():
+def _get_person_name():
     global curr_friend_name
 
     access_token = 'EAAYeBD26ZAQkBABrAJhhuBzZAGBXzgZBu0vwKJYphmMieKkt4MDUGtn428daGpP7rGJOQNAey7lf9qOjX1OWhkEAc8VcW4pQPrJVshySSEDze0qJIKiBLJb177HT1ejJQ1cZC7c2hZC60EyO2yLNXh1fvyFQwqEz0puzt2r3UnZBk3ZCWc9FM3czDyt4I4o9MH8ZC0wiYhVZBVwZDZD'
@@ -121,7 +121,7 @@ def get_person_name():
 # -------------------------------------------------------------------------------
 
 
-def interpret_hand_gesture(prev_photo_name, next_photo_name):
+def _interpret_hand_gesture(prev_photo_name, next_photo_name):
     global liked_post_index
     global liked_page_index
 
