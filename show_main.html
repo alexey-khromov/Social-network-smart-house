@@ -15,11 +15,10 @@
                 Please look straight at the camera to be recognized.<br>
                 Note: you must be friend with Smart Home on Facebook to use the application.<br>
                 After you've been recognized, use hand gestures:<br>
-                - Up and down to scroll<br>
-                - Left and right to swipe between liked pages.<br>
+                - Up and down to scroll between posts<br>
+                - Left and right to swipe between liked pages<br>
                 <br><br>
 
-                Status: <span id="status_span"></span><br>
                 Recognized person: <span id="person_name_span"></span><br>
                 Now showing page: <span id="page_name_span"></span><br>
                 Recognized gesture: <span id="gesture_span"></span><br>
@@ -33,10 +32,9 @@
             <th width="500">
                 <div id="fb-root"></div>
                 <!-- note 500px is max width of fb plugin-->
-                <div class="fb-page" style="height: 1000px; width: 500px;" data-href=""
-                     data-tabs="timeline" data-send="false" data-height="1000" data-width="500"
-                     data-small-header="false" data-adapt-container-width="true"
-                     data-hide-cover="false" data-show-facepile="true" id="my-fb-page"></div>
+                    <div class="fb-post"
+                          data-href=""
+                          data-width="500"></div>
             </th>
         </tr>
     </table>
@@ -55,7 +53,7 @@
         const canvas = document.querySelector('#screenshot-canvas');
 
         // ----------------------------------------------------------------------------------------
-        // Facebook Window ------------------------------------------------------------------------
+        // Facebook Plugin ------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
         (function(d, s, id) {
@@ -68,90 +66,48 @@
         }(document, 'script', 'facebook-jssdk'));
 
         // ----------------------------------------------------------------------------------------
-        // Update FB page -------------------------------------------------------------------------
+        // Update FB page and status --------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        function get_next_page(direction) {
-
-            if (direction==='next') {
-                url_func = "/getNextFrame";
-            } else if (direction==='prev') {
-                url_func = "/getPrevFrame";
-            } else {
-                url_func = "error_in_param"
-            }
-
+        function get_next_post() {
             $.getJSON(
                 {
-                    url: url_func,
-                    data: {},
+                    url: "/interpretPhoto",
+                    data: {'image_src': document.getElementById('screenshot-img').src},
                     success: function (result) {
-                        if (result.status == "new_fb_page") {
-                            $(".fb-page").attr('data-href', result.next_url);
-                            document.getElementById("page_name_span").textContent = result.page_name;
+                        if (result.status != '') {
+                            $(".fb-post").attr('data-href', result.next_url);
+
+                            if (result.status == "new_post") {
+                                document.getElementById("gesture_span").textContent = result.gesture;
+                            }
+                            else if (result.status == "new_page") {
+                                document.getElementById("page_name_span").textContent = result.page_name;
+                                document.getElementById("gesture_span").textContent = result.gesture;
+                            }
+                            else if (result.status == "new_person") {
+                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("person_name_span").textContent = result.person_name;
+                                document.getElementById("page_name_span").textContent = result.page_name;
+                            }
+                            else {
+                                window.alert('Unrecognized returned status: ' + result.status);
+                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("person_name_span").textContent = '-';
+                                document.getElementById("page_name_span").textContent = '-';
+                            }
                             FB.XFBML.parse();
                         }
+                        else {
+                            document.getElementById("gesture_span").textContent = '-';
+                        }
+
                     }
                 });
         }
 
         // ----------------------------------------------------------------------------------------
-        // Check current user  --------------------------------------------------------------------
-        // ----------------------------------------------------------------------------------------
-
-        function get_person_name() {
-            $.getJSON(
-                {
-                    url: "/getPersonName",
-                    data: {'image_src': document.getElementById('screenshot-img').src},
-                    success: function (result) {
-                        if (result.status === "recognizing") {
-                            document.getElementById("status_span").textContent = 'Recognizing...';
-                            document.getElementById("page_name_span").textContent = '-';
-                        }
-                        else if (result.status === "recognized") {
-                            document.getElementById("status_span").textContent = 'Recognized.';
-                        }
-                        else if (result.status === "recognized_new") {
-                            get_next_page('next');
-                        }
-                        document.getElementById("person_name_span").textContent = result.person_name;
-                    }
-                });
-        }
-
-        // ----------------------------------------------------------------------------------------
-        // Check gesture  -------------------------------------------------------------------------
-        // ----------------------------------------------------------------------------------------
-
-        function get_gesture() {
-            $.getJSON(
-                {
-                    url: "/getHandGesture",
-                    data: {'image_src': document.getElementById('screenshot-img').src},
-                    success: function (result) {
-
-                        var ges_name = result.gesture_name;
-                        document.getElementById("status_span").textContent = ges_name;
-                        if (ges_name === 'scroll_down') {
-                            // TODO: fix - nothing works
-                            FB.canvas.scrollTo(100, 100);
-                            document.getElementById("my-fb-page").scrollTo(100, 100);
-                        } else if (ges_name === 'scroll_up') {
-                            // TODO: fix - nothing works
-                            FB.canvas.scrollTo(-100, -100);
-                            document.getElementById("my-fb-page").scrollTo(-100, -100);
-                        } else if (ges_name === 'swipe_right') {
-                            get_next_page('next');
-                        } else if (ges_name === 'swipe_left') {
-                            get_next_page('prev');
-                        }
-                    }
-                });
-        }
-
-        // ----------------------------------------------------------------------------------------
-        // Camera Functionns  ---------------------------------------------------------------------
+        // Camera Streaming  ----------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
         navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
@@ -178,27 +134,17 @@
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 250; // miliseconds
-        var cycles_till_recognition = 5000 / interval; // we want recognition once in 5 seconds
-        var calls_counter = 0;
+        var interval = 500; // miliseconds
         var first_cycles_run_counter = 0;
 
-        function run_with_timer() {
-
-            if (first_cycles_run_counter < 5) { // async - takes time for first picture to load
-                first_cycles_run_counter++;
-                get_screenshot();
+        function run_with_timer()
+        {
+            get_screenshot();
+            if (first_cycles_run_counter > 5) {
+                get_next_post();
             } else {
-                get_screenshot();
-                if (calls_counter === cycles_till_recognition - 1) {
-                    get_person_name();
-                    return;
-                } else {
-                    get_gesture();
-                }
-                calls_counter = (calls_counter + 1) % cycles_till_recognition;
+                first_cycles_run_counter++; // async - takes time for first picture to be uploaded
             }
-
             setTimeout(run_with_timer, interval);
         }
 
