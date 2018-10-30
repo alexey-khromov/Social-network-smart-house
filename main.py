@@ -6,14 +6,14 @@ import os
 import urllib.request
 import cv2
 import numpy as np
-
+import boto3
 
 #-------------------------------------------------------------------------------
 # Constants
 #-------------------------------------------------------------------------------
 
 SEQUEL_PHOTOS_TO_KEEP = 2
-ITERATIONS_BETWEEN_RECOGNITION = 4
+ITERATIONS_BETWEEN_RECOGNITION = 9  # 5 seconds
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.jpg"
 
 #-------------------------------------------------------------------------------
@@ -39,6 +39,7 @@ curr_friend_name = ''
 sequel_images_counter = 0
 is_first_photo = True
 pages_to_show = [] # list of dicts
+colId = "SmartSocNet"
 
 #-------------------------------------------------------------------------------
 # Flask URLs
@@ -64,7 +65,7 @@ def interpret_photo():
 
     res_dict = {'status': ''}
     curr_iteration = (curr_iteration + 1) % ITERATIONS_BETWEEN_RECOGNITION
-    if curr_iteration % ITERATIONS_BETWEEN_RECOGNITION == 0:
+    if curr_iteration == 0:
         urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
         new_friend_name = _get_person_name()
         if new_friend_name and (new_friend_name != curr_friend_name):
@@ -92,29 +93,70 @@ def interpret_photo():
     return jsonify(res_dict)
 
 #-------------------------------------------------------------------------------
+
+
+@app.route("/newUser", methods=['GET'])
+def new_user():
+    global liked_page_index
+    global liked_post_index
+    global curr_friend_name
+
+    path = request.args.get('image_src')  # image link passed from javascript
+    username = request.args.get('user_name')  # new user name from javascript
+    res_dict = {'status': ''}
+    urllib.request.urlretrieve(path, "photo_for_new_user.jpg")
+
+    client = boto3.client('rekognition')
+    colId = "SmartSocNet"
+    #c = client.create_collection(CollectionId=colId)
+    with open("photo_for_new_user.jpg", "rb") as imgf:
+        img = imgf.read()
+    indr = client.index_faces(CollectionId=colId, Image={'Bytes': img}, ExternalImageId=username, MaxFaces=1, )
+
+    curr_friend_name = username
+    liked_page_index = 0
+    _create_liked_pages_list()
+    next_page_name = pages_to_show[liked_page_index]['name']
+    liked_post_index = 0
+    next_post = pages_to_show[liked_page_index]['posts'][liked_post_index]
+    res_dict['status'] = 'new_person'
+    res_dict['person_name'] = curr_friend_name
+    res_dict['page_name'] = next_page_name
+    res_dict['next_url'] = next_post
+
+    return jsonify(res_dict)
+
+#-------------------------------------------------------------------------------
 # Help Functions
 #-------------------------------------------------------------------------------
 
+
 def _get_person_name():
     global curr_friend_name
+    global colId
 
-    access_token = 'EAAYeBD26ZAQkBABrAJhhuBzZAGBXzgZBu0vwKJYphmMieKkt4MDUGtn428daGpP7rGJOQNAey7lf9qOjX1OWhkEAc8VcW4pQPrJVshySSEDze0qJIKiBLJb177HT1ejJQ1cZC7c2hZC60EyO2yLNXh1fvyFQwqEz0puzt2r3UnZBk3ZCWc9FM3czDyt4I4o9MH8ZC0wiYhVZBVwZDZD'
-    cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
-    fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
+    #access_token = 'EAAYeBD26ZAQkBABrAJhhuBzZAGBXzgZBu0vwKJYphmMieKkt4MDUGtn428daGpP7rGJOQNAey7lf9qOjX1OWhkEAc8VcW4pQPrJVshySSEDze0qJIKiBLJb177HT1ejJQ1cZC7c2hZC60EyO2yLNXh1fvyFQwqEz0puzt2r3UnZBk3ZCWc9FM3czDyt4I4o9MH8ZC0wiYhVZBVwZDZD'
+    #cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
+    #fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
 
     friend_name = curr_friend_name
     try:
-        fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
-        picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
-        recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
+        #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
+        #picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
+        #recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
         #recognized_friends_list = [{'name': 'James Bond'}]
 
-        if (len(recognized_friends_list) > 0):
-            friend_name = recognized_friends_list[0]['name']
+        client = boto3.client('rekognition')
+        with open("photo_for_recognition.jpg", "rb") as imgf:
+            img = imgf.read()
+        inds = client.search_faces_by_image(CollectionId=colId, Image={'Bytes': img}, MaxFaces=1)
+
+        if (len(inds) > 0) and (inds['FaceMatches'][0]['Similarity'] > 90):
+            friend_name = inds['FaceMatches'][0]['Face']['ExternalImageId']
 
     except Exception as err:
         print(err)
-        print('Error occured, please check the token, and verify you are connected.')
+        print('Error occurred, please check the token, and verify you are connected.')
 
     return friend_name
 
@@ -153,12 +195,20 @@ def _interpret_hand_gesture(prev_photo_name, next_photo_name):
 #-------------------------------------------------------------------------------
 
 
-def _create_liked_posts_list(index_to_create_for):
+def _create_liked_posts_list(index_to_create_for, max_posts_num=2):
     global pages_to_show
 
     pages_to_show[index_to_create_for]['posts'] = []
     page_name = pages_to_show[index_to_create_for]['link'].split('/')[-2]
-    new_page_link = pages_to_show[index_to_create_for]['link'].replace(page_name, 'pg/' + page_name + '/posts/?ref=page_internal')
+
+    if page_name != 'facebook':
+        new_page_link = pages_to_show[index_to_create_for]['link'].replace(page_name, 'pg/' + page_name + '/posts/?ref=page_internal')
+    else:
+        link_splitted = pages_to_show[index_to_create_for]['link'].split('facebook')
+        link_for_work = 'facebook'.join(link_splitted[:-1])
+        link_for_work = link_for_work + 'pg/' + page_name + '/posts/?ref=page_internal'
+        link_for_work = link_for_work + link_splitted[-1]
+        new_page_link = link_for_work
 
     response = urllib.request.urlopen(new_page_link)
     soup = BeautifulSoup(response.read(), "html.parser")
@@ -167,11 +217,13 @@ def _create_liked_posts_list(index_to_create_for):
         div_like_link = posts_object.find('a')
         link_to_append = 'https://www.facebook.com' + div_like_link['href']
         pages_to_show[index_to_create_for]['posts'].append(link_to_append)
+        if len(pages_to_show[index_to_create_for]['posts']) >= max_posts_num:
+            break
 
 #-------------------------------------------------------------------------------
 
 
-def _create_liked_pages_list():
+def _create_liked_pages_list(max_pages_num=2):
     global curr_friend_name
     global pages_to_show
 
@@ -179,9 +231,7 @@ def _create_liked_pages_list():
     username = USERNAME
     password = PASSWORD
     cookies = _login(session, username, password)
-    splitted_name_of_curr_friend = 'Asia Zhivov'.lower().split(' ') # TODO: curr_friend_name
-    dotted_name_of_curr_friend = splitted_name_of_curr_friend[0] + '.' + splitted_name_of_curr_friend[-1]
-    likes_url = 'https://www.facebook.com/' + dotted_name_of_curr_friend +'/likes?lst=1198688678%3A843054236%3A1535896155'
+    likes_url = 'https://www.facebook.com/' + curr_friend_name +'/likes?lst=1198688678%3A843054236%3A1535896155'
     response = session.get(likes_url, cookies=cookies, allow_redirects=False)
     assert response.text.find('Home') != -1
 
@@ -198,6 +248,10 @@ def _create_liked_pages_list():
             liked_page_dict['name'] = div_like_link.text
             liked_page_dict['link'] = div_like_link['href']
             pages_to_show.append(liked_page_dict)
+            if len(pages_to_show) >= max_pages_num:
+                break
+        if len(pages_to_show) >= max_pages_num:
+            break
 
     for i, page in enumerate(pages_to_show):
         _create_liked_posts_list(i)
@@ -291,6 +345,14 @@ def _login(session, email, password):
 
 
 if __name__ == '__main__':
+    '''
+    client = boto3.client('rekognition')
+    colId = "SmartSocNet"
+    client.delete_collection(CollectionId=colId)
+    c = client.create_collection(CollectionId=colId)
+    exit(0)
+    '''
+
     app.run(debug=True)
 
 

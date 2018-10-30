@@ -13,10 +13,15 @@
                 <h3>Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
                 <br>
                 Please look straight at the camera to be recognized.<br>
-                Note: you must be friend with Smart Home on Facebook to use the application.<br>
+                Note: on first use, please push "new user" button.<br>
                 After you've been recognized, use hand gestures:<br>
                 - Up and down to scroll between posts<br>
                 - Left and right to swipe between liked pages<br>
+                <br>
+
+                If it is your first use, please insert your unique username (NOT the ordinary name) as appear in Facebook and press "new user" button:
+                <input id="new_user_input" placeholder="james.bond"/>
+                <button id="new_user_button" onclick="new_user()" disabled>new user</button>
                 <br><br>
 
                 Recognized person: <span id="person_name_span"></span><br>
@@ -26,8 +31,7 @@
 
                 <video id="screenshot-video" autoplay width="450" height="450"></video><br>
                 <canvas id="screenshot-canvas" style="display:none;"></canvas>
-                <img id="screenshot-img" src="" hidden="hidden"><br>
-
+                <img id="screenshot-img" src="" hidden="hidden">
             </th>
             <th width="500">
                 <div id="fb-root"></div>
@@ -107,6 +111,40 @@
         }
 
         // ----------------------------------------------------------------------------------------
+        // New User -------------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function new_user() {
+            $.getJSON(
+                {
+                    url: "/newUser",
+                    data: {'image_src': document.getElementById('screenshot-img').src,
+                           'user_name': document.getElementById('new_user_input').value},
+                    success: function (result) {
+                        if (result.status != '') {
+                            $(".fb-post").attr('data-href', result.next_url);
+                            if (result.status == "new_person") {
+                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("person_name_span").textContent = result.person_name;
+                                document.getElementById("page_name_span").textContent = result.page_name;
+                            }
+                            else {
+                                window.alert('Unrecognized returned status: ' + result.status);
+                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("person_name_span").textContent = '-';
+                                document.getElementById("page_name_span").textContent = '-';
+                            }
+                            FB.XFBML.parse();
+                        }
+                        else {
+                            document.getElementById("gesture_span").textContent = '-';
+                        }
+
+                    }
+                });
+        }
+
+        // ----------------------------------------------------------------------------------------
         // Camera Streaming  ----------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
@@ -141,6 +179,7 @@
         {
             get_screenshot();
             if (first_cycles_run_counter > 5) {
+                document.getElementById("new_user_button").disabled = false;
                 get_next_post();
             } else {
                 first_cycles_run_counter++; // async - takes time for first picture to be uploaded
