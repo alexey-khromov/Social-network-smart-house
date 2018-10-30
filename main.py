@@ -13,7 +13,7 @@ import boto3
 #-------------------------------------------------------------------------------
 
 SEQUEL_PHOTOS_TO_KEEP = 2
-ITERATIONS_BETWEEN_RECOGNITION = 9  # 5 seconds
+ITERATIONS_BETWEEN_RECOGNITION = 10  # 5 seconds
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.jpg"
 
 #-------------------------------------------------------------------------------
