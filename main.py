@@ -1,12 +1,12 @@
 from flask import Flask, jsonify, render_template, request
 from bs4 import BeautifulSoup, Comment
-from fbrecog import FBRecog
 import requests
 import os
-import urllib.request
 import cv2
 import numpy as np
 import boto3
+import urllib
+from urllib2 import urlopen
 
 #-------------------------------------------------------------------------------
 # Constants
@@ -66,7 +66,7 @@ def interpret_photo():
     res_dict = {'status': ''}
     curr_iteration = (curr_iteration + 1) % ITERATIONS_BETWEEN_RECOGNITION
     if curr_iteration == 0:
-        urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
+        urllib.urlretrieve(path, "photo_for_recognition.jpg")
         new_friend_name = _get_person_name()
         if new_friend_name and (new_friend_name != curr_friend_name):
             curr_friend_name = new_friend_name
@@ -83,7 +83,7 @@ def interpret_photo():
         prev_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
         sequel_images_counter = (sequel_images_counter % SEQUEL_PHOTOS_TO_KEEP) + 1 # we want 1 and 2
         next_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
-        urllib.request.urlretrieve(path, next_photo_name)
+        urllib.urlretrieve(path, next_photo_name)
 
         if not is_first_photo:
             res_dict = _interpret_hand_gesture(prev_photo_name, next_photo_name)
@@ -104,7 +104,7 @@ def new_user():
     path = request.args.get('image_src')  # image link passed from javascript
     username = request.args.get('user_name')  # new user name from javascript
     res_dict = {'status': ''}
-    urllib.request.urlretrieve(path, "photo_for_new_user.jpg")
+    urllib.urlretrieve(path, "photo_for_new_user.jpg")
 
     client = boto3.client('rekognition')
     colId = "SmartSocNet"
@@ -187,8 +187,9 @@ def _interpret_hand_gesture(prev_photo_name, next_photo_name):
             res_dict['status'] = 'new_page'
             res_dict['page_name'] = pages_to_show[liked_page_index]['name']
 
-        res_dict['gesture'] = gesture_result
-        res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
+	if (len(pages_to_show)>liked_page_index):
+            res_dict['gesture'] = gesture_result
+       	    res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
 
     return res_dict
 
@@ -210,7 +211,7 @@ def _create_liked_posts_list(index_to_create_for, max_posts_num=2):
         link_for_work = link_for_work + link_splitted[-1]
         new_page_link = link_for_work
 
-    response = urllib.request.urlopen(new_page_link)
+    response = urllib.urlopen(new_page_link)
     soup = BeautifulSoup(response.read(), "html.parser")
     posts_objects_list = soup.find_all('span', {'class': 'fsm fwn fcg'})
     for posts_object in posts_objects_list:
