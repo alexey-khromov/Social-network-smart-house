@@ -74,6 +74,7 @@
         // ----------------------------------------------------------------------------------------
 
         function get_next_post() {
+            ready_to_continue = false;
             $.getJSON(
                 {
                     url: "/interpretPhoto",
@@ -105,7 +106,7 @@
                         else {
                             document.getElementById("gesture_span").textContent = '-';
                         }
-
+                        ready_to_continue = true;
                     }
                 });
         }
@@ -115,6 +116,9 @@
         // ----------------------------------------------------------------------------------------
 
         function new_user() {
+            ready_to_continue = false;
+            document.getElementById("new_user_button").disabled = true;
+
             $.getJSON(
                 {
                     url: "/newUser",
@@ -139,7 +143,8 @@
                         else {
                             document.getElementById("gesture_span").textContent = '-';
                         }
-
+                        ready_to_continue = true;
+                        document.getElementById("new_user_button").disabled = false;
                     }
                 });
         }
@@ -174,15 +179,18 @@
 
         var interval = 500; // miliseconds
         var first_cycles_run_counter = 0;
+        var ready_to_continue = true;
 
         function run_with_timer()
         {
-            get_screenshot();
-            if (first_cycles_run_counter > 5) {
-                document.getElementById("new_user_button").disabled = false;
-                get_next_post();
-            } else {
-                first_cycles_run_counter++; // async - takes time for first picture to be uploaded
+            if (ready_to_continue) {
+                get_screenshot();
+                if (first_cycles_run_counter > 5) {
+                    document.getElementById("new_user_button").disabled = false;
+                    get_next_post();
+                } else {
+                    first_cycles_run_counter++; // async - takes time for first picture to be uploaded
+                }
             }
             setTimeout(run_with_timer, interval);
         }
