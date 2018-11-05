@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import boto3
 import urllib
-from urllib2 import urlopen
+#from urllib2 import urlopen
 
 #-------------------------------------------------------------------------------
 # Constants
@@ -187,9 +187,9 @@ def _interpret_hand_gesture(prev_photo_name, next_photo_name):
             res_dict['status'] = 'new_page'
             res_dict['page_name'] = pages_to_show[liked_page_index]['name']
 
-	if (len(pages_to_show)>liked_page_index):
+        if len(pages_to_show)>liked_page_index:
             res_dict['gesture'] = gesture_result
-       	    res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
+            res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
 
     return res_dict
 
