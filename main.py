@@ -150,17 +150,8 @@ def _get_person_name():
     global curr_friend_name
     global colId
 
-    #access_token = 'EAAYeBD26ZAQkBABrAJhhuBzZAGBXzgZBu0vwKJYphmMieKkt4MDUGtn428daGpP7rGJOQNAey7lf9qOjX1OWhkEAc8VcW4pQPrJVshySSEDze0qJIKiBLJb177HT1ejJQ1cZC7c2hZC60EyO2yLNXh1fvyFQwqEz0puzt2r3UnZBk3ZCWc9FM3czDyt4I4o9MH8ZC0wiYhVZBVwZDZD'
-    #cookies = 'sb=9kLwWktAnKZOmrlxUuJlGvKk; datr=9kLwWo5FFaoj5mK76Z1-vShO; locale=en_US; c_user=1198688678; xs=35%3AlyCvKlPdxEjPyg%3A2%3A1538383858%3A3484%3A15165; pl=n; spin=r.4393324_b.trunk_t.1538905122_s.1_v.2_; fr=0wfDpjdR3vG29Yo3f.AWUPGfa3vQZ80Dw_B3o1kU5p0ts.Ba8EL2.K_.Fux.0.0.BbudUS.AWVcNdsJ; dpr=1.75; presence=EDvF3EtimeF1538908587EuserFA21198688678A2EstateFDutF1538908587789CEchFDp_5f1198688678F2CC; act=1538908590107%2F0; wd=884x742'
-    #fb_dtsg = 'AQG4zg_XZ4s4:AQE3N127AIwY'
-
     friend_name = curr_friend_name
     try:
-        #fb_recog_obj = FBRecog(access_token, cookies, fb_dtsg)
-        #picture_for_recog_path = os.getcwd() + '\photo_for_recognition.jpg'
-        #recognized_friends_list = fb_recog_obj.recognize(picture_for_recog_path)
-        #recognized_friends_list = [{'name': 'James Bond'}]
-
         client = boto3.client('rekognition')
         with open("photo_for_recognition.jpg", "rb") as imgf:
             img = imgf.read()
