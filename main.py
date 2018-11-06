@@ -107,6 +107,7 @@ def interpret_photo():
 
 @app.route("/newUser", methods=['GET'])
 def new_user():
+
     global liked_page_index
     global liked_post_index
     global curr_friend_name
@@ -121,12 +122,22 @@ def new_user():
         import urllib.request
         urllib.request.urlretrieve(path, "photo_for_new_user.jpg")
 
-    client = boto3.client('rekognition')
-    colId = "SmartSocNet"
-    #c = client.create_collection(CollectionId=colId)
-    with open("photo_for_new_user.jpg", "rb") as imgf:
-        img = imgf.read()
-    indr = client.index_faces(CollectionId=colId, Image={'Bytes': img}, ExternalImageId=username, MaxFaces=1, )
+    try:
+        client = boto3.client('rekognition')
+        colId = "SmartSocNet"
+        #c = client.create_collection(CollectionId=colId)
+        with open("photo_for_new_user.jpg", "rb") as imgf:
+            img = imgf.read()
+        indr = client.index_faces(CollectionId=colId, Image={'Bytes': img}, ExternalImageId=username, MaxFaces=1, )
+    except Exception as err:
+
+
+        print '---------------------------------------------------------------------------------------------------------'
+        print '---------------------------------------------------------------------------------------------------------'
+        print err.msg
+        print '---------------------------------------------------------------------------------------------------------'
+        print '---------------------------------------------------------------------------------------------------------'
+        raise
 
     curr_friend_name = username
     liked_page_index = 0
@@ -140,6 +151,22 @@ def new_user():
     res_dict['next_url'] = next_post
 
     return jsonify(res_dict)
+
+
+#-------------------------------------------------------------------------------
+
+
+@app.route("/clrCol", methods=['GET'])
+def clear_collection():
+    res_dict = {'status': ''}
+    client = boto3.client('rekognition')
+    colId = "SmartSocNet"
+    client.delete_collection(CollectionId=colId)
+    c = client.create_collection(CollectionId=colId)
+
+    res_dict['status'] = 'collection cleared'
+    return jsonify(res_dict)
+
 
 #-------------------------------------------------------------------------------
 # Help Functions
@@ -263,6 +290,7 @@ def _create_liked_pages_list(max_pages_num=2):
             pages_to_show.append(liked_page_dict)
             if len(pages_to_show) >= max_pages_num:
                 break
+
         if len(pages_to_show) >= max_pages_num:
             break
 
@@ -316,8 +344,8 @@ def _compare_images_for_gesture(first_avg, second_avg):
     delta_x, delta_y = first_avg[0] - second_avg[0], first_avg[1] - second_avg[1]
 
     res = ''
-    threshold_ver = 10
-    threshold_hor = 25
+    threshold_ver = 8
+    threshold_hor = 20
 
     direction = 'ver' if abs(delta_y) > abs(delta_x) else 'hor'
     if direction == 'ver':
@@ -351,21 +379,12 @@ def _login(session, email, password):
     assert 'c_user' in response.cookies
     return response.cookies
 
-
 #-------------------------------------------------------------------------------
 # Main Function
 #-------------------------------------------------------------------------------
 
 
 if __name__ == '__main__':
-    '''
-    client = boto3.client('rekognition')
-    colId = "SmartSocNet"
-    client.delete_collection(CollectionId=colId)
-    c = client.create_collection(CollectionId=colId)
-    exit(0)
-    '''
-
     app.run(debug=True)
 
 

@@ -22,6 +22,7 @@
                 If it is your first use, please insert your unique username (NOT the ordinary name) as appear in Facebook and press "new user" button:
                 <input id="new_user_input" placeholder="james.bond"/>
                 <button id="new_user_button" onclick="new_user()" disabled>new user</button>
+                <button id="clear_collection_button" onclick="clear_col()">clear all users</button>
                 <br><br>
 
                 Recognized person: <span id="person_name_span"></span><br>
@@ -29,7 +30,7 @@
                 Recognized gesture: <span id="gesture_span"></span><br>
                 <br><br>
 
-                <video id="screenshot-video" autoplay width="450" height="450"></video><br>
+                <video id="screenshot-video" autoplay width="320" height="240"></video><br>
                 <canvas id="screenshot-canvas" style="display:none;"></canvas>
                 <img id="screenshot-img" src="" hidden="hidden">
             </th>
@@ -95,7 +96,8 @@
                                 document.getElementById("person_name_span").textContent = result.person_name;
                                 document.getElementById("page_name_span").textContent = result.page_name;
                             }
-                            else {
+                            else {0
+
                                 window.alert('Unrecognized returned status: ' + result.status);
                                 document.getElementById("gesture_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = '-';
@@ -107,6 +109,38 @@
                             document.getElementById("gesture_span").textContent = '-';
                         }
                         ready_to_continue = true;
+                    },
+                    error: function (result) {
+                        ready_to_continue = true;
+                    }
+                });
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // Clear Collection -----------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function clear_col() {
+
+            ready_to_continue = false;
+            document.getElementById("new_user_button").disabled = true;
+            $.getJSON(
+                {
+                    url: "/clrCol",
+                    data: {},
+                    success: function (result) {
+                        if (result.status == 'collection cleared') {
+                            window.alert(result.status);
+                        } else {
+                            window.alert('error in clearing');
+                        }
+
+                        ready_to_continue = true;
+                        document.getElementById("new_user_button").disabled = false;
+                    },
+                    error: function (result) {
+                        ready_to_continue = true;
+                        document.getElementById("new_user_button").disabled = false;
                     }
                 });
         }
@@ -138,12 +172,18 @@
                                 document.getElementById("person_name_span").textContent = '-';
                                 document.getElementById("page_name_span").textContent = '-';
                             }
+
                             FB.XFBML.parse();
                         }
                         else {
                             document.getElementById("gesture_span").textContent = '-';
                         }
                         ready_to_continue = true;
+                        document.getElementById("new_user_button").disabled = false;
+                    },
+                  error: function (result) {
+                        ready_to_continue = true;0
+
                         document.getElementById("new_user_button").disabled = false;
                     }
                 });
