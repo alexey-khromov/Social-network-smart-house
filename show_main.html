@@ -27,7 +27,7 @@
 
                 Recognized person: <span id="person_name_span"></span><br>
                 Now showing page: <span id="page_name_span"></span><br>
-                Recognized gesture: <span id="gesture_span"></span><br>
+                Status: <span id="status_span"></span><br>
                 <br><br>
 
                 <video id="screenshot-video" autoplay width="320" height="240"></video><br>
@@ -75,6 +75,7 @@
         // ----------------------------------------------------------------------------------------
 
         function get_next_post() {
+            //document.getElementById("status_span").textContent = 'interpreting photo';
             ready_to_continue = false;
             $.getJSON(
                 {
@@ -85,29 +86,30 @@
                             $(".fb-post").attr('data-href', result.next_url);
 
                             if (result.status == "new_post") {
-                                document.getElementById("gesture_span").textContent = result.gesture;
+                                document.getElementById("status_span").textContent = result.gesture;
                             }
                             else if (result.status == "new_page") {
                                 document.getElementById("page_name_span").textContent = result.page_name;
-                                document.getElementById("gesture_span").textContent = result.gesture;
+                                document.getElementById("status_span").textContent = result.gesture;
                             }
                             else if (result.status == "new_person") {
-                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("status_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = result.person_name;
                                 document.getElementById("page_name_span").textContent = result.page_name;
                             }
-                            else {0
-
+                            else {
                                 window.alert('Unrecognized returned status: ' + result.status);
-                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("status_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = '-';
                                 document.getElementById("page_name_span").textContent = '-';
                             }
+
                             FB.XFBML.parse();
                         }
                         else {
-                            document.getElementById("gesture_span").textContent = '-';
+                            document.getElementById("status_span").textContent = '-';
                         }
+                        setTimeout( function() {}, 2000);
                         ready_to_continue = true;
                     },
                     error: function (result) {
@@ -121,7 +123,7 @@
         // ----------------------------------------------------------------------------------------
 
         function clear_col() {
-
+            document.getElementById("status_span").textContent = 'clearing users'
             ready_to_continue = false;
             document.getElementById("new_user_button").disabled = true;
             $.getJSON(
@@ -134,13 +136,15 @@
                         } else {
                             window.alert('error in clearing');
                         }
-
+                        setTimeout( function() {}, 2000);
                         ready_to_continue = true;
                         document.getElementById("new_user_button").disabled = false;
+                         document.getElementById("status_span").textContent = ''
                     },
                     error: function (result) {
                         ready_to_continue = true;
                         document.getElementById("new_user_button").disabled = false;
+                        document.getElementById("status_span").textContent = ''
                     }
                 });
         }
@@ -150,6 +154,7 @@
         // ----------------------------------------------------------------------------------------
 
         function new_user() {
+            document.getElementById("status_span").textContent = 'adding user to system'
             ready_to_continue = false;
             document.getElementById("new_user_button").disabled = true;
 
@@ -162,13 +167,13 @@
                         if (result.status != '') {
                             $(".fb-post").attr('data-href', result.next_url);
                             if (result.status == "new_person") {
-                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("status_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = result.person_name;
                                 document.getElementById("page_name_span").textContent = result.page_name;
                             }
                             else {
                                 window.alert('Unrecognized returned status: ' + result.status);
-                                document.getElementById("gesture_span").textContent = '-';
+                                document.getElementById("status_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = '-';
                                 document.getElementById("page_name_span").textContent = '-';
                             }
@@ -176,14 +181,14 @@
                             FB.XFBML.parse();
                         }
                         else {
-                            document.getElementById("gesture_span").textContent = '-';
+                            document.getElementById("status_span").textContent = '-';
                         }
+                        setTimeout( function() {}, 2000);
                         ready_to_continue = true;
                         document.getElementById("new_user_button").disabled = false;
                     },
                   error: function (result) {
-                        ready_to_continue = true;0
-
+                        ready_to_continue = true;
                         document.getElementById("new_user_button").disabled = false;
                     }
                 });
@@ -217,7 +222,7 @@
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 500; // miliseconds
+        var interval = 250; // miliseconds
         var first_cycles_run_counter = 0;
         var ready_to_continue = true;
 

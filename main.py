@@ -11,7 +11,7 @@ import sys
 # Constants
 #-------------------------------------------------------------------------------
 
-SEQUEL_PHOTOS_TO_KEEP = 2
+SEQUEL_PHOTOS_TO_KEEP = 4
 ITERATIONS_BETWEEN_RECOGNITION = 10  # 5 seconds
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.jpg"
 
@@ -33,12 +33,12 @@ except KeyError:
 app = Flask(__name__, template_folder='./')
 liked_page_index = -1
 liked_post_index = -1
-curr_iteration = -1
 curr_friend_name = ''
 sequel_images_counter = 0
 is_first_photo = True
 pages_to_show = [] # list of dicts
 colId = "SmartSocNet"
+sequel_photos_mean = []
 
 #-------------------------------------------------------------------------------
 # Flask URLs
@@ -53,52 +53,22 @@ def render_static():
 
 @app.route("/interpretPhoto", methods=['GET'])
 def interpret_photo():
-    global curr_iteration
     global sequel_images_counter
-    global is_first_photo
-    global liked_page_index
-    global liked_post_index
-    global curr_friend_name
 
     path = request.args.get('image_src')  # image link passed from javascript
 
     res_dict = {'status': ''}
-    curr_iteration = (curr_iteration + 1) % ITERATIONS_BETWEEN_RECOGNITION
-    if curr_iteration == 0:
-        if sys.version_info[0] <= 2:
-            import urllib
-            urllib.urlretrieve(path, "photo_for_recognition.jpg")
-        elif sys.version_info[0] <= 3:
-            import urllib.request
-            urllib.request.urlretrieve(path, "photo_for_recognition.jpg")
+    prev_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
+    sequel_images_counter = (sequel_images_counter % SEQUEL_PHOTOS_TO_KEEP) + 1 # we want 1 and 2
+    next_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
+    if sys.version_info[0] <= 2:
+        import urllib
+        urllib.urlretrieve(path, next_photo_name)
+    elif sys.version_info[0] <= 3:
+        import urllib.request
+        urllib.request.urlretrieve(path, next_photo_name)
 
-        new_friend_name = _get_person_name()
-        if new_friend_name and (new_friend_name != curr_friend_name):
-            curr_friend_name = new_friend_name
-            liked_page_index = 0
-            _create_liked_pages_list()
-            next_page_name = pages_to_show[liked_page_index]['name']
-            liked_post_index = 0
-            next_post = pages_to_show[liked_page_index]['posts'][liked_post_index]
-            res_dict['status'] = 'new_person'
-            res_dict['person_name'] = curr_friend_name
-            res_dict['page_name'] = next_page_name
-            res_dict['next_url'] = next_post
-    else:
-        prev_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
-        sequel_images_counter = (sequel_images_counter % SEQUEL_PHOTOS_TO_KEEP) + 1 # we want 1 and 2
-        next_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
-        if sys.version_info[0] <= 2:
-            import urllib
-            urllib.urlretrieve(path, next_photo_name)
-        elif sys.version_info[0] <= 3:
-            import urllib.request
-            urllib.request.urlretrieve(path, next_photo_name)
-
-        if not is_first_photo:
-            res_dict = _interpret_hand_gesture(prev_photo_name, next_photo_name)
-        else:
-            is_first_photo = False
+    res_dict = _interpret_photos(next_photo_name)
 
     return jsonify(res_dict)
 
@@ -107,10 +77,6 @@ def interpret_photo():
 
 @app.route("/newUser", methods=['GET'])
 def new_user():
-
-    global liked_page_index
-    global liked_post_index
-    global curr_friend_name
 
     path = request.args.get('image_src')  # image link passed from javascript
     username = request.args.get('user_name')  # new user name from javascript
@@ -130,25 +96,14 @@ def new_user():
             img = imgf.read()
         indr = client.index_faces(CollectionId=colId, Image={'Bytes': img}, ExternalImageId=username, MaxFaces=1, )
     except Exception as err:
-
-
-        print '---------------------------------------------------------------------------------------------------------'
-        print '---------------------------------------------------------------------------------------------------------'
-        print err.msg
-        print '---------------------------------------------------------------------------------------------------------'
-        print '---------------------------------------------------------------------------------------------------------'
+        print('-------------------------------------------------------------------------------------------------------'
+              '-------------------------------------------------------------------------------------------------------')
+        print(err.msg)
+        print('-------------------------------------------------------------------------------------------------------'
+              '-------------------------------------------------------------------------------------------------------')
         raise
 
-    curr_friend_name = username
-    liked_page_index = 0
-    _create_liked_pages_list()
-    next_page_name = pages_to_show[liked_page_index]['name']
-    liked_post_index = 0
-    next_post = pages_to_show[liked_page_index]['posts'][liked_post_index]
-    res_dict['status'] = 'new_person'
-    res_dict['person_name'] = curr_friend_name
-    res_dict['page_name'] = next_page_name
-    res_dict['next_url'] = next_post
+    res_dict = _new_person_retrieve_data()
 
     return jsonify(res_dict)
 
@@ -172,41 +127,77 @@ def clear_collection():
 # Help Functions
 #-------------------------------------------------------------------------------
 
+def _new_person_retrieve_data(username):
 
-def _get_person_name():
+    global liked_page_index
+    global liked_post_index
+    global curr_friend_name
+
+    curr_friend_name = username
+    liked_page_index = 0
+    _create_liked_pages_list()
+    next_page_name = pages_to_show[liked_page_index]['name']
+    liked_post_index = 0
+    _create_liked_posts_list(liked_page_index)
+    next_post = pages_to_show[liked_page_index]['posts'][liked_post_index]
+    res_dict = {'status': 'new_person',
+                'person_name': curr_friend_name,
+                'page_name': next_page_name,
+                'next_url':next_post}
+
+    return res_dict
+
+
+#-------------------------------------------------------------------------------
+
+def _try_to_recognize(image_path):
+
     global curr_friend_name
     global colId
 
-    friend_name = curr_friend_name
+    res_dict = {'status': ''}
+    new_friend_name = curr_friend_name
     try:
         client = boto3.client('rekognition')
-        with open("photo_for_recognition.jpg", "rb") as imgf:
+        with open(image_path, "rb") as imgf:
             img = imgf.read()
         inds = client.search_faces_by_image(CollectionId=colId, Image={'Bytes': img}, MaxFaces=1)
 
         if (len(inds) > 0) and (inds['FaceMatches'][0]['Similarity'] > 90):
-            friend_name = inds['FaceMatches'][0]['Face']['ExternalImageId']
+            new_friend_name = inds['FaceMatches'][0]['Face']['ExternalImageId']
 
     except Exception as err:
         print(err)
         print('Error occurred, please check the token, and verify you are connected.')
 
-    return friend_name
+    if new_friend_name and (new_friend_name != curr_friend_name):
+        res_dict = _new_person_retrieve_data(new_friend_name)
+
+    return res_dict
 
 # -------------------------------------------------------------------------------
 
 
-def _interpret_hand_gesture(prev_photo_name, next_photo_name):
+def _interpret_photos(last_photo_path):
     global liked_post_index
     global liked_page_index
+    global pages_to_show
 
     res_dict = {'status': ''}
-    gesture_result = _get_hand_gesture(prev_photo_name, next_photo_name)
-    if gesture_result != '':
+    gesture_result = _get_hand_gesture(last_photo_path)
+
+    if gesture_result == 'new_user_gesture':
+        res_dict = _try_to_recognize(last_photo_path)
+
+    elif gesture_result != '':
         if gesture_result == 'scroll_up':
+            if 'posts' not in pages_to_show[liked_page_index]:
+                _create_liked_posts_list(liked_page_index)
             liked_post_index = (liked_post_index + 1) % len(pages_to_show[liked_page_index]['posts'])
             res_dict['status'] = 'new_post'
         if gesture_result == 'scroll_down':
+            if 'posts' not in pages_to_show[liked_page_index]:
+                _create_liked_posts_list(liked_page_index)
             liked_post_index = (liked_post_index - 1) % len(pages_to_show[liked_page_index]['posts'])
             res_dict['status'] = 'new_post'
         if gesture_result == 'swipe_left':
@@ -220,16 +211,19 @@ def _interpret_hand_gesture(prev_photo_name, next_photo_name):
             res_dict['status'] = 'new_page'
             res_dict['page_name'] = pages_to_show[liked_page_index]['name']
 
-        if len(pages_to_show)>liked_page_index:
+        if len(pages_to_show) > liked_page_index:
             res_dict['gesture'] = gesture_result
-            res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
+            if len(pages_to_show) > 0:
+                if 'posts' not in pages_to_show[liked_page_index]:
+                    _create_liked_posts_list(liked_page_index)
+                res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
 
     return res_dict
 
 #-------------------------------------------------------------------------------
 
 
-def _create_liked_posts_list(index_to_create_for, max_posts_num=2):
+def _create_liked_posts_list(index_to_create_for):
     global pages_to_show
 
     pages_to_show[index_to_create_for]['posts'] = []
@@ -257,13 +251,11 @@ def _create_liked_posts_list(index_to_create_for, max_posts_num=2):
         div_like_link = posts_object.find('a')
         link_to_append = 'https://www.facebook.com' + div_like_link['href']
         pages_to_show[index_to_create_for]['posts'].append(link_to_append)
-        if len(pages_to_show[index_to_create_for]['posts']) >= max_posts_num:
-            break
 
 #-------------------------------------------------------------------------------
 
 
-def _create_liked_pages_list(max_pages_num=2):
+def _create_liked_pages_list():
     global curr_friend_name
     global pages_to_show
 
@@ -284,54 +276,57 @@ def _create_liked_pages_list(max_pages_num=2):
         div_likes_list = soup_inner.findAll('div',{'class':['fsl fwb fcb', 'fsl fwb fcb _5wj-']}) # one for eng. and one for heb.
         for div_like in div_likes_list:
             div_like_link = div_like.find('a')
-            liked_page_dict = {}
-            liked_page_dict['name'] = div_like_link.text
-            liked_page_dict['link'] = div_like_link['href']
+            liked_page_dict = {'name': div_like_link.text,
+                               'link': div_like_link['href']}
             pages_to_show.append(liked_page_dict)
-            if len(pages_to_show) >= max_pages_num:
-                break
-
-        if len(pages_to_show) >= max_pages_num:
-            break
-
-    for i, page in enumerate(pages_to_show):
-        _create_liked_posts_list(i)
 
 #-------------------------------------------------------------------------------
 
 
-def _get_hand_gesture(img_name_first, img_name_second):
+def _get_hand_gesture(img_name_first):
+    global sequel_photos_mean
+    global pages_to_show
+
     try:
-        img_first = cv2.imread(img_name_first)
-        img_second = cv2.imread(img_name_second)
+        res = ''
+        img_last = cv2.imread(img_name_first)
+        gray_img_last = cv2.cvtColor(img_last, cv2.COLOR_BGR2GRAY)
+        blur_img_last = cv2.GaussianBlur(gray_img_last, (5, 5), 0)
 
-        gray_img_first = cv2.cvtColor(img_first, cv2.COLOR_BGR2GRAY)
-        gray_img_second = cv2.cvtColor(img_second, cv2.COLOR_BGR2GRAY)
+        ret, thresh_img_last = cv2.threshold(blur_img_last, 180, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
 
-        blur_img_first = cv2.GaussianBlur(gray_img_first, (5, 5), 0)
-        blur_img_second = cv2.GaussianBlur(gray_img_second, (5, 5), 0)
-
-
-        ret, thresh_img_first = cv2.threshold(blur_img_first, 100, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
-        ret, thresh_img_second = cv2.threshold(blur_img_second, 100, 255, cv2.THRESH_BINARY) # + cv2.THRESH_OTSU
-
-
-        # ---Compute the center/mean of the contours---
-        points_first = cv2.findNonZero(thresh_img_first)
-        curr_avg_first = np.mean(points_first, axis=0)
-
-        points_second = cv2.findNonZero(thresh_img_second)
-        curr_avg_second = np.mean(points_second, axis=0)
-
-
-        prev_pos = curr_avg_first.tolist()[0]
-        cur_pos = curr_avg_second.tolist()[0]
-
-        #cv2.imshow('image1', thresh_img_first)
-        #cv2.imshow('image2', thresh_img_second)
+        #cv2.imshow('image1', thresh_img_last)
         #cv2.waitKey(0)
 
-        return _compare_images_for_gesture(prev_pos, cur_pos)
+        # ---Compute the center/mean of the contours---
+        points_img_last = cv2.findNonZero(thresh_img_last)
+        curr_avg_img_last = np.mean(points_img_last, axis=0)
+
+        sequel_photos_mean.append(curr_avg_img_last.tolist()[0])
+
+        if len(sequel_photos_mean) > SEQUEL_PHOTOS_TO_KEEP:
+            sequel_photos_mean.remove(sequel_photos_mean[0])
+
+        if len(sequel_photos_mean) == SEQUEL_PHOTOS_TO_KEEP:
+            threshold = 2
+            # if special gesture, try to recognize person
+
+            if ((SEQUEL_PHOTOS_TO_KEEP == 4) and
+                (sequel_photos_mean[1][1] - sequel_photos_mean[0][1] > threshold) and
+                (sequel_photos_mean[2][0] - sequel_photos_mean[1][0] > threshold) and
+                (sequel_photos_mean[3][1] - sequel_photos_mean[2][1] < -threshold) and
+                (sequel_photos_mean[0][0] - sequel_photos_mean[3][0] < -threshold)):
+
+                res = 'new_user_gesture'
+            elif len(pages_to_show) > 0:
+                res = _compare_images_for_gesture(sequel_photos_mean)
+                if res != '':
+                    sequel_photos_mean = []
+
+        #cv2.imshow('image1', thresh_img_first)
+        #cv2.waitKey(0)
+
+        return res
 
     except Exception as err:
         print(err)
@@ -339,13 +334,31 @@ def _get_hand_gesture(img_name_first, img_name_second):
 #-------------------------------------------------------------------------------
 
 
-def _compare_images_for_gesture(first_avg, second_avg):
-
-    delta_x, delta_y = first_avg[0] - second_avg[0], first_avg[1] - second_avg[1]
+def _compare_images_for_gesture(sequel_photos_mean_list):
 
     res = ''
-    threshold_ver = 8
-    threshold_hor = 20
+
+    delta_x = 0
+    delta_y = 0
+
+    for i in range(2, len(sequel_photos_mean_list)):
+        delta_x += sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
+        delta_y += sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
+
+        #res_x = sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
+        #res_y = sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
+        #if abs(res_x) > abs(res_y):
+        #    delta_x += sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
+        #else:
+        #    delta_y += sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
+
+    print(str(delta_x) + ' ' + str(delta_y) + '\n')
+
+    if abs(abs(delta_x) - abs(delta_y)) < 30:
+        return res
+
+    threshold_ver = 20
+    threshold_hor = 30
 
     direction = 'ver' if abs(delta_y) > abs(delta_x) else 'hor'
     if direction == 'ver':
@@ -358,7 +371,6 @@ def _compare_images_for_gesture(first_avg, second_avg):
             res = 'swipe_right'
         elif delta_x > threshold_hor:
             res = 'swipe_left'
-
 
     return res
 
