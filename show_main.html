@@ -4,50 +4,149 @@
     <meta charset="UTF-8">
     <title> Smart Home </title>
 </head>
+<style>
+        #video_div {
+          width: 640px;
+          height: 480px;
+          position: relative;
+          margin: auto;
+        }
+        #rectangle_top_svg,
+        #rectangle_right_svg{
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
 
+        #rectangle_face_svg{
+            z-index: 1;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        #rectangle_user_arrived_svg{
+            z-index: 2;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+        }
+
+        #rectangle_top,
+        #rectangle_right{
+            fill: #4cdb4c;
+            fill-opacity: 0.2;
+            stroke-width: 2;
+            stroke: #00cc00;
+            rx: 15;
+            ry: 15;
+        }
+
+        #rectangle_face{
+            fill: #f8cdcd;
+            fill-opacity: 0.2;
+            stroke-width: 2;
+            stroke: #e63838;
+            rx: 15;
+            ry: 15;
+        }
+
+        #rectangle_user_arrived{
+            fill: #99ddff;
+            fill-opacity: 0.4;
+            stroke-width: 2;
+            stroke: #0088cc;
+            rx: 15;
+            ry: 15;
+        }
+
+        #screenshot-video{
+            transform: rotateY(180deg);
+            -webkit-transform:rotateY(180deg); /* Safari and Chrome */
+            -moz-transform:rotateY(180deg); /* Firefox */
+            z-index: 0;
+            position: absolute;
+        }
+
+
+
+</style>
 <body>
-    <table style="height: 100%;width:1000px" align="center" border="1" cellspacing="0">
+    <table style="width:1200px" align="center" border="1" cellspacing="0">
         <tr>
-            <th width="500" valign="top">
-                <h1>Smart Home Project</h1>
-                <h3>Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
-                <br>
-                Please look straight at the camera to be recognized.<br>
-                Note: on first use, please push "new user" button.<br>
-                After you've been recognized, use hand gestures:<br>
-                - Up and down to scroll between posts<br>
-                - Left and right to swipe between liked pages<br>
-                <br>
+            <td width="700" valign="top">
+                <table style="height: 100%;width: 100%" border="0" cellspacing="20">
+                    <tr>
+                        <td align="left">
+                            <h1 align="center">Smart Home Project</h1>
+                            <h3 align="center">Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
+                            <br>
+                            If new room: press the "new environment" button without any people in capture zone.<br><br>
+                            Stand in the middle of red rectangle.<br><br>
+                            If it is your first use of the system: insert your unique username <b>(NOT the ordinary name)</b> as appear in Facebook and press "new user".<br><br>
+                            To be recognized: stand in approximate distance of 1 meter from the camera.
+                            The best distance will be achieved when your left hand  <b>open</b> palm
+                            will barely fill blue rectangle.<br><br>
+                            Put your left hand in blue rectangle for 2 seconds to be recognized.<br><br>
+                            After you've been recognized, use right hand gestures in green areas:<br>
+                            - Up and down to scroll between posts<br>
+                            - Left and right to swipe between liked pages<br>
+                            <br><br>
 
-                If it is your first use, please insert your unique username (NOT the ordinary name) as appear in Facebook and press "new user" button:
-                <input id="new_user_input" placeholder="james.bond"/>
-                <button id="new_user_button" onclick="new_user()" disabled>new user</button>
-                <button id="clear_collection_button" onclick="clear_col()">clear all users</button>
-                <br><br>
+                            <span style="font-weight:bold">New user:</span>
+                            <input id="new_user_input" placeholder="james.bond"/>
+                            <button id="new_user_button" onclick="new_user()" disabled>new user</button>
+                            <br>
+                            <span style="font-weight:bold"> Clear collection of users:</span>
+                            <button id="clear_collection_button" onclick="clear_col()" disabled>clear all users</button>
+                            <br>
+                            <span style="font-weight:bold"> New environment:</span>
+                            <button id="new_env_button" onclick="save_new_env()" disabled>new environment</button><br><br>
+                            <br><br>
 
-                Recognized person: <span id="person_name_span"></span><br>
-                Now showing page: <span id="page_name_span"></span><br>
-                Status: <span id="status_span"></span><br>
-                <br><br>
-
-                <video id="screenshot-video" autoplay width="320" height="240"></video><br>
-                <canvas id="screenshot-canvas" style="display:none;"></canvas>
-                <img id="screenshot-img" src="" hidden="hidden">
-            </th>
-            <th width="500">
+                            <span style="font-weight:bold"> Recognized person:</span> <span id="person_name_span"></span><br>
+                            <span style="font-weight:bold">Now showing page:</span> <span id="page_name_span"></span><br>
+                            <span style="font-weight:bold">Status:</span> <span id="status_span"></span><br>
+                            <br><br>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td>
+                            <div id="video_div">
+                                <svg id="rectangle_top_svg">
+                                    <rect id="rectangle_top" x="10" y="10" width="620" height="80"/>
+                                </svg>
+                                <svg id="rectangle_right_svg">
+                                    <rect id="rectangle_right" x="550" y="10" width="80" height="460"/>
+                                </svg>
+                                <svg id="rectangle_face_svg">
+                                    <rect id="rectangle_face" x="10" y="100" width="530" height="370"/>
+                                </svg>
+                                <svg id="rectangle_user_arrived_svg">
+                                    <rect id="rectangle_user_arrived" x="10" y="100" width="120" height="120"/>
+                                </svg>
+                                <video id="screenshot-video" autoplay width="640px" height="480px"></video>
+                            </div>
+                            <canvas id="screenshot-canvas" style="display:none;"></canvas>
+                            <img id="screenshot-img" src="" hidden="hidden">
+                        </td>
+                    </tr>
+                </table>
+            </td>
+            <td width="500">
                 <div id="fb-root"></div>
                 <!-- note 500px is max width of fb plugin-->
                     <div class="fb-post"
                           data-href=""
                           data-width="500"></div>
-            </th>
+            </td>
         </tr>
     </table>
 
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js"></script>
     <script src="opencv.js" type="text/javascript"></script>
     <script>
-
         // ----------------------------------------------------------------------------------------
         // Constants ------------------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
@@ -77,43 +176,74 @@
         function get_next_post() {
             //document.getElementById("status_span").textContent = 'interpreting photo';
             ready_to_continue = false;
+
             $.getJSON(
                 {
                     url: "/interpretPhoto",
                     data: {'image_src': document.getElementById('screenshot-img').src},
                     success: function (result) {
                         if (result.status != '') {
-                            $(".fb-post").attr('data-href', result.next_url);
-
-                            if (result.status == "new_post") {
-                                document.getElementById("status_span").textContent = result.gesture;
-                            }
-                            else if (result.status == "new_page") {
-                                document.getElementById("page_name_span").textContent = result.page_name;
-                                document.getElementById("status_span").textContent = result.gesture;
-                            }
-                            else if (result.status == "new_person") {
-                                document.getElementById("status_span").textContent = '-';
-                                document.getElementById("person_name_span").textContent = result.person_name;
-                                document.getElementById("page_name_span").textContent = result.page_name;
-                            }
+                            set_readiness_status(false);
+                            if (result.status == "new_post_or_page") {
+                                document.getElementById("status_span").textContent = 'caught gesture ' + result.gesture + ', loading new post...';
+                                $(".fb-post").attr('data-href', '');
+                                FB.XFBML.parse();
+                                $.getJSON(
+                                    {
+                                    url: "/getCurrPostUrl",
+                                    data: {'gesture_result': result.gesture},
+                                    success: function (result) {
+                                        document.getElementById("status_span").textContent = ''
+                                        document.getElementById("page_name_span").textContent = result.page_name;
+                                        $(".fb-post").attr('data-href', result.next_url);
+                                        FB.XFBML.parse();
+                                        set_readiness_status(true);
+                                        },
+                                    error: function (result) {
+                                        set_readiness_status(true);
+                                        }
+                                    });
+                                }
+                            else if (result.status == "new_user_gesture") {
+                                document.getElementById("status_span").textContent = 'Gesture of new user caught, identifying...';
+                                document.getElementById("person_name_span").textContent = '';
+                                document.getElementById("page_name_span").textContent = '';
+                                $.getJSON(
+                                    {
+                                    url: "/newUserArrived",
+                                    data: {'photo_path': result.photo_path},
+                                    success: function (result_inner) {
+                                        if (result_inner.status == "new_person") {
+                                            document.getElementById("status_span").textContent = '-';
+                                            document.getElementById("person_name_span").textContent = result_inner.person_name;
+                                            document.getElementById("page_name_span").textContent = result_inner.page_name;
+                                            $(".fb-post").attr('data-href', result_inner.next_url);
+                                            }
+                                         setTimeout( function() {}, time_between_posts);
+                                         FB.XFBML.parse();
+                                         set_readiness_status(true);
+                                         },
+                                    error: function (result_inner){
+                                         set_readiness_status(true);
+                                        }
+                                    });
+                                }
                             else {
                                 window.alert('Unrecognized returned status: ' + result.status);
                                 document.getElementById("status_span").textContent = '-';
                                 document.getElementById("person_name_span").textContent = '-';
                                 document.getElementById("page_name_span").textContent = '-';
+                                FB.XFBML.parse();
+                                set_readiness_status(true);
+                                }
                             }
-
-                            FB.XFBML.parse();
-                        }
                         else {
-                            document.getElementById("status_span").textContent = '-';
+                            document.getElementById("status_span").textContent = 'waiting for orders...';
+                            set_readiness_status(true);
                         }
-                        setTimeout( function() {}, 2000);
-                        ready_to_continue = true;
                     },
                     error: function (result) {
-                        ready_to_continue = true;
+                        set_readiness_status(true);
                     }
                 });
         }
@@ -124,8 +254,7 @@
 
         function clear_col() {
             document.getElementById("status_span").textContent = 'clearing users'
-            ready_to_continue = false;
-            document.getElementById("new_user_button").disabled = true;
+            set_readiness_status(false);
             $.getJSON(
                 {
                     url: "/clrCol",
@@ -136,15 +265,43 @@
                         } else {
                             window.alert('error in clearing');
                         }
-                        setTimeout( function() {}, 2000);
-                        ready_to_continue = true;
-                        document.getElementById("new_user_button").disabled = false;
-                         document.getElementById("status_span").textContent = ''
+                        setTimeout( function() {}, time_between_posts);
+                        set_readiness_status(true);
+                        document.getElementById("status_span").textContent = ''
                     },
                     error: function (result) {
-                        ready_to_continue = true;
-                        document.getElementById("new_user_button").disabled = false;
+                        window.alert('Error in clearing users from collection: ' + result);
+                        set_readiness_status(true);
                         document.getElementById("status_span").textContent = ''
+                    }
+                });
+        }
+
+        // ----------------------------------------------------------------------------------------
+        // New Environment ------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function save_new_env() {
+            document.getElementById("status_span").textContent = 'saving image of environment'
+            set_readiness_status(false);
+
+            $.getJSON(
+                {
+                    url: "/newEnvironment",
+                    data: {'image_src': document.getElementById('screenshot-img').src},
+                    success: function (result) {
+                        if (result.status == 'new_env_saved') {
+                            window.alert('New environment saved successfully.');
+                        }
+                        else {
+                            window.alert('Unrecognized return value: ' + result.status);
+                        }
+                        setTimeout( function() {}, time_between_posts);
+                        set_readiness_status(true);
+                    },
+                    error: function (result) {
+                        window.alert('Error in saving new environment: ' + result);
+                        set_readiness_status(true);
                     }
                 });
         }
@@ -155,8 +312,7 @@
 
         function new_user() {
             document.getElementById("status_span").textContent = 'adding user to system'
-            ready_to_continue = false;
-            document.getElementById("new_user_button").disabled = true;
+            set_readiness_status(false);
 
             $.getJSON(
                 {
@@ -167,35 +323,32 @@
                         if (result.status != '') {
                             $(".fb-post").attr('data-href', result.next_url);
                             if (result.status == "new_person") {
-                                document.getElementById("status_span").textContent = '-';
+                                document.getElementById("status_span").textContent = 'new user added to system';
                                 document.getElementById("person_name_span").textContent = result.person_name;
                                 document.getElementById("page_name_span").textContent = result.page_name;
                             }
                             else {
                                 window.alert('Unrecognized returned status: ' + result.status);
-                                document.getElementById("status_span").textContent = '-';
-                                document.getElementById("person_name_span").textContent = '-';
-                                document.getElementById("page_name_span").textContent = '-';
+                                document.getElementById("status_span").textContent = '';
+                                document.getElementById("person_name_span").textContent = '';
+                                document.getElementById("page_name_span").textContent = '';
                             }
-
                             FB.XFBML.parse();
                         }
                         else {
-                            document.getElementById("status_span").textContent = '-';
+                            document.getElementById("status_span").textContent = '';
                         }
-                        setTimeout( function() {}, 2000);
-                        ready_to_continue = true;
-                        document.getElementById("new_user_button").disabled = false;
+                        set_readiness_status(true);
                     },
                   error: function (result) {
-                        ready_to_continue = true;
-                        document.getElementById("new_user_button").disabled = false;
+                        window.alert('Error in saving new user: ' + result);
+                        set_readiness_status(true);
                     }
                 });
         }
 
         // ----------------------------------------------------------------------------------------
-        // Camera Streaming  ----------------------------------------------------------------------
+        // Camera Streaming -----------------------------------------------------------------------
         // ----------------------------------------------------------------------------------------
 
         navigator.mediaDevices.getUserMedia(constraints).then(handleSuccess).catch(handleError);
@@ -219,19 +372,32 @@
         }
 
         // ----------------------------------------------------------------------------------------
+        // Readiness Status -------------------------------------------------------------------------
+        // ----------------------------------------------------------------------------------------
+
+        function set_readiness_status(is_ready)
+        {
+            ready_to_continue = is_ready;
+            document.getElementById("new_user_button").disabled = !is_ready;
+            document.getElementById("new_env_button").disabled = !is_ready;
+            document.getElementById("clear_collection_button").disabled = !is_ready;
+        }
+
+        // ----------------------------------------------------------------------------------------
         // Infinite timer to update page and current user  ----------------------------------------
         // ----------------------------------------------------------------------------------------
 
-        var interval = 250; // miliseconds
+        var interval = 500;             // miliseconds
+        var time_between_posts = 1000;  // miliseconds
         var first_cycles_run_counter = 0;
         var ready_to_continue = true;
 
         function run_with_timer()
         {
+            get_screenshot();
             if (ready_to_continue) {
-                get_screenshot();
                 if (first_cycles_run_counter > 5) {
-                    document.getElementById("new_user_button").disabled = false;
+                    set_readiness_status(true);
                     get_next_post();
                 } else {
                     first_cycles_run_counter++; // async - takes time for first picture to be uploaded
@@ -241,6 +407,7 @@
         }
 
         $(document).ready(run_with_timer());
+
     </script>
 </body>
 </html>

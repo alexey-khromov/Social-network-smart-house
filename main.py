@@ -6,14 +6,22 @@ import cv2
 import numpy as np
 import boto3
 import sys
+import copy
 
 #-------------------------------------------------------------------------------
 # Constants
 #-------------------------------------------------------------------------------
 
-SEQUEL_PHOTOS_TO_KEEP = 4
-ITERATIONS_BETWEEN_RECOGNITION = 10  # 5 seconds
+SEQUEL_PHOTOS_TO_KEEP = 1
 PHOTO_NAME_PATTERN = "photo_for_interp_{0}.jpg"
+PHOTO_ENVIRONMENT = "photo_environment.jpg"
+PHOTO_USER_ADDED = "photo_for_new_user.jpg"
+PHOTO_USER_ARRIVED = "photo_user_arrived.jpg"
+SEQUEL_PHOTOS_TO_RECOGNIZE_USER = 4
+HAND_MATRIX_ORIGINAL_RIGHT = [False, False, False]
+HAND_MATRIX_ORIGINAL_TOP = [False, False, False]
+VERTICAL_SCROLL_THRESHOLD = 40
+HORIZONTAL_SCROLL_THRESHOLD = 30
 
 #-------------------------------------------------------------------------------
 # Environment Variables
@@ -35,10 +43,12 @@ liked_page_index = -1
 liked_post_index = -1
 curr_friend_name = ''
 sequel_images_counter = 0
-is_first_photo = True
 pages_to_show = [] # list of dicts
 colId = "SmartSocNet"
-sequel_photos_mean = []
+sequel_photos_with_new_user_gesture = 0
+previous_hands_matrix_right = copy.deepcopy(HAND_MATRIX_ORIGINAL_RIGHT)
+previous_hands_matrix_top = copy.deepcopy(HAND_MATRIX_ORIGINAL_TOP)
+
 
 #-------------------------------------------------------------------------------
 # Flask URLs
@@ -57,8 +67,6 @@ def interpret_photo():
 
     path = request.args.get('image_src')  # image link passed from javascript
 
-    res_dict = {'status': ''}
-    prev_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
     sequel_images_counter = (sequel_images_counter % SEQUEL_PHOTOS_TO_KEEP) + 1 # we want 1 and 2
     next_photo_name = PHOTO_NAME_PATTERN.format(sequel_images_counter)
     if sys.version_info[0] <= 2:
@@ -80,13 +88,12 @@ def new_user():
 
     path = request.args.get('image_src')  # image link passed from javascript
     username = request.args.get('user_name')  # new user name from javascript
-    res_dict = {'status': ''}
     if sys.version_info[0] <= 2:
         import urllib
-        urllib.urlretrieve(path, "photo_for_new_user.jpg")
+        urllib.urlretrieve(path)
     elif sys.version_info[0] <= 3:
         import urllib.request
-        urllib.request.urlretrieve(path, "photo_for_new_user.jpg")
+        urllib.request.urlretrieve(path)
 
     try:
         client = boto3.client('rekognition')
@@ -124,6 +131,76 @@ def clear_collection():
 
 
 #-------------------------------------------------------------------------------
+
+@app.route("/newEnvironment", methods=['GET'])
+def new_environment():
+
+    path = request.args.get('image_src')  # image link passed from javascript
+    if sys.version_info[0] <= 2:
+        import urllib
+        urllib.urlretrieve(path, PHOTO_ENVIRONMENT)
+    elif sys.version_info[0] <= 3:
+        import urllib.request
+        urllib.request.urlretrieve(path, PHOTO_ENVIRONMENT)
+
+    res_dict = {'status': 'new_env_saved'}
+    return jsonify(res_dict)
+
+
+
+#-------------------------------------------------------------------------------
+
+@app.route("/newUserArrived", methods=['GET'])
+def new_user_arrived():
+    global sequel_photos_with_new_user_gesture
+
+    photo_path = request.args.get('photo_path')
+    res_dict = _try_to_recognize(photo_path)
+    sequel_photos_with_new_user_gesture = 0
+    return jsonify(res_dict)
+
+
+#-------------------------------------------------------------------------------
+
+@app.route("/getCurrPostUrl", methods=['GET'])
+def get_curr_post_url():
+    global liked_page_index
+    global liked_post_index
+    global pages_to_show  # list of dicts
+
+    res_dict = {'status': ''}
+    gesture_result = request.args.get('gesture_result')
+    if gesture_result == 'scroll_up':
+        if 'posts' not in pages_to_show[liked_page_index]:
+            _create_liked_posts_list(liked_page_index)
+        liked_post_index = (liked_post_index + 1) % len(pages_to_show[liked_page_index]['posts'])
+        res_dict['status'] = 'new_post'
+    if gesture_result == 'scroll_down':
+        if 'posts' not in pages_to_show[liked_page_index]:
+            _create_liked_posts_list(liked_page_index)
+        liked_post_index = (liked_post_index - 1) % len(pages_to_show[liked_page_index]['posts'])
+        res_dict['status'] = 'new_post'
+    if gesture_result == 'swipe_left':
+        liked_page_index = (liked_page_index + 1) % len(pages_to_show)
+        liked_post_index = 0
+        res_dict['status'] = 'new_page'
+    if gesture_result == 'swipe_right':
+        liked_page_index = (liked_page_index - 1) % len(pages_to_show)
+        liked_post_index = 0
+        res_dict['status'] = 'new_page'
+
+    res_dict['page_name'] = pages_to_show[liked_page_index]['name']
+    if len(pages_to_show) > liked_page_index:
+        res_dict['gesture'] = gesture_result
+        if len(pages_to_show) > 0:
+            if 'posts' not in pages_to_show[liked_page_index]:
+                _create_liked_posts_list(liked_page_index)
+            res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
+
+    return jsonify(res_dict)
+
+
+#-------------------------------------------------------------------------------
 # Help Functions
 #-------------------------------------------------------------------------------
 
@@ -143,7 +220,7 @@ def _new_person_retrieve_data(username):
     res_dict = {'status': 'new_person',
                 'person_name': curr_friend_name,
                 'page_name': next_page_name,
-                'next_url':next_post}
+                'next_url': next_post}
 
     return res_dict
 
@@ -170,7 +247,7 @@ def _try_to_recognize(image_path):
         print(err)
         print('Error occurred, please check the token, and verify you are connected.')
 
-    if new_friend_name and (new_friend_name != curr_friend_name):
+    if new_friend_name:
         res_dict = _new_person_retrieve_data(new_friend_name)
 
     return res_dict
@@ -182,41 +259,34 @@ def _interpret_photos(last_photo_path):
     global liked_post_index
     global liked_page_index
     global pages_to_show
+    global sequel_photos_with_new_user_gesture
+    global previous_hands_matrix_right
+    global previous_hands_matrix_top
 
     res_dict = {'status': ''}
+
+    if _is_new_user_gesture(last_photo_path):
+        sequel_photos_with_new_user_gesture += 1
+        if sequel_photos_with_new_user_gesture >= SEQUEL_PHOTOS_TO_RECOGNIZE_USER:
+            sequel_photos_with_new_user_gesture = 0
+            image = cv2.imread(last_photo_path)
+            cv2.imwrite(PHOTO_USER_ARRIVED, image)
+
+            res_dict = {'status': 'new_user_gesture',
+                        'photo_path': PHOTO_USER_ARRIVED}
+            return res_dict
+    else:
+        sequel_photos_with_new_user_gesture = 0
+
+    if curr_friend_name == '':
+        return res_dict
+
     gesture_result = _get_hand_gesture(last_photo_path)
-
-    if gesture_result == 'new_user_gesture':
-        res_dict = _try_to_recognize(last_photo_path)
-
-    elif gesture_result != '':
-        if gesture_result == 'scroll_up':
-            if 'posts' not in pages_to_show[liked_page_index]:
-                _create_liked_posts_list(liked_page_index)
-            liked_post_index = (liked_post_index + 1) % len(pages_to_show[liked_page_index]['posts'])
-            res_dict['status'] = 'new_post'
-        if gesture_result == 'scroll_down':
-            if 'posts' not in pages_to_show[liked_page_index]:
-                _create_liked_posts_list(liked_page_index)
-            liked_post_index = (liked_post_index - 1) % len(pages_to_show[liked_page_index]['posts'])
-            res_dict['status'] = 'new_post'
-        if gesture_result == 'swipe_left':
-            liked_page_index = (liked_page_index + 1) % len(pages_to_show)
-            liked_post_index = 0
-            res_dict['status'] = 'new_page'
-            res_dict['page_name'] = pages_to_show[liked_page_index]['name']
-        if gesture_result == 'swipe_right':
-            liked_page_index = (liked_page_index - 1) % len(pages_to_show)
-            liked_post_index = 0
-            res_dict['status'] = 'new_page'
-            res_dict['page_name'] = pages_to_show[liked_page_index]['name']
-
-        if len(pages_to_show) > liked_page_index:
-            res_dict['gesture'] = gesture_result
-            if len(pages_to_show) > 0:
-                if 'posts' not in pages_to_show[liked_page_index]:
-                    _create_liked_posts_list(liked_page_index)
-                res_dict['next_url'] = pages_to_show[liked_page_index]['posts'][liked_post_index]
+    if gesture_result != '':
+        previous_hands_matrix_right = copy.deepcopy(HAND_MATRIX_ORIGINAL_RIGHT)
+        previous_hands_matrix_top = copy.deepcopy(HAND_MATRIX_ORIGINAL_TOP)
+        res_dict['status'] = 'new_post_or_page'
+        res_dict['gesture'] = gesture_result
 
     return res_dict
 
@@ -283,50 +353,197 @@ def _create_liked_pages_list():
 #-------------------------------------------------------------------------------
 
 
-def _get_hand_gesture(img_name_first):
-    global sequel_photos_mean
+def _is_new_user_gesture(img_name_new):
+    '''
+    In this function we will be looking for the blue rectangle
+    :param img_name_new:
+    :return:
+    '''
+    '''
+    :param img_name_new: 
+    :return: 
+    '''
+    img_last = cv2.imread(img_name_new)
+    img_env = cv2.imread(PHOTO_ENVIRONMENT)
+
+    diff = cv2.absdiff(img_last, img_env)
+    gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+    ret, thresh_gray_diff_img = cv2.threshold(gray_diff, 10, 255, cv2.THRESH_BINARY)  # + cv2.THRESH_OTSU
+    blur_img_last = cv2.blur(thresh_gray_diff_img, (15, 15))
+    ret, thresh_img_last = cv2.threshold(blur_img_last, 230, 255, cv2.THRESH_BINARY)  # + cv2.THRESH_OTSU
+
+    '''
+    cv2.imshow('image1', gray_diff)
+    cv2.imshow('image2', thresh_img_last)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
+
+    y, x = thresh_img_last.shape
+    cropx = 120
+    cropy = 120
+    startx = 480  # x // 2 - (cropx // 2)
+    starty = 100  # y // 2 - (cropy // 2)
+    cropped_img = thresh_img_last[starty:starty + cropy, startx:startx + cropx]
+
+    '''
+    cv2.imshow('image3', cropped_img)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
+
+    ci = -1
+    max_area = 0
+    img2, contours, hierarchy = cv2.findContours(cropped_img, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+    for i in range(len(contours)):
+        cnt = contours[i]
+        area = cv2.contourArea(cnt)
+        if area > max_area:
+            max_area = area
+            ci = i
+
+    if ci != -1:
+        cnt = contours[ci]
+
+        '''
+        hull = cv2.convexHull(cnt)
+        drawing = np.zeros(img_last.shape, np.uint8)
+        cv2.drawContours(drawing, [cnt], 0, (255, 0, 0), 2)
+        cv2.drawContours(drawing, [hull], 0, (255, 0, 255), 2)
+        cv2.imshow('image1', cropped_img)
+        cv2.imshow('image2', drawing)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        '''
+
+        hull = cv2.convexHull(cnt, returnPoints=False)
+        defects = cv2.convexityDefects(cnt, hull)
+
+        if (defects is not None) and (len(defects) >= 6):
+            return True
+
+    return False
+
+    '''
+    moments = cv2.moments(cnt)
+    if moments['m00'] != 0:
+        cx = int(moments['m10'] / moments['m00'])  # cx = M10/M00
+        cy = int(moments['m01'] / moments['m00'])  # cy = M01/M00
+
+    centr = (cx, cy)
+    i = 0
+    for i in range(defects.shape[0]):
+        s, e, f, d = defects[i, 0]
+        start = tuple(cnt[s][0])
+        end = tuple(cnt[e][0])
+        far = tuple(cnt[f][0])
+        cv2.line(drawing, start, end, [0, 255, 0], 2)
+        cv2.circle(drawing, far, 5, [0, 0, 255], -1)
+    '''
+
+
+#-------------------------------------------------------------------------------
+
+def _fill_hand_matrices(image):
+    global new_hand_matrix_right
+    global new_hand_matrix_top
+
+    height, width = image.shape
+
+    new_hand_matrix_right = copy.deepcopy(HAND_MATRIX_ORIGINAL_RIGHT)
+    new_hand_matrix_top = copy.deepcopy(HAND_MATRIX_ORIGINAL_TOP)
+
+    rows_num = len(HAND_MATRIX_ORIGINAL_RIGHT)
+    cols_num = len(HAND_MATRIX_ORIGINAL_TOP)
+    x_slice_size = width // cols_num
+    y_slice_size = height // rows_num
+
+    def _aux_fun(image, startx, starty, x_slice_size, y_slice_size):
+        cropped_img = image[starty:starty + y_slice_size, startx:startx + x_slice_size]
+        n_white_pix = np.sum(cropped_img == 255)
+        n_black_pix = np.sum(cropped_img == 0)
+        return n_white_pix, n_black_pix
+
+    for row in range(0, rows_num):
+        startx = 10
+        starty = row * y_slice_size
+        n_white_pix, n_black_pix = _aux_fun(image, startx, starty, 100, y_slice_size)
+        new_hand_matrix_right[row] = n_white_pix > (n_black_pix // VERTICAL_SCROLL_THRESHOLD)
+
+    for col in range(0, cols_num):
+        startx = col * x_slice_size
+        starty = 10
+        n_white_pix, n_black_pix = _aux_fun(image, startx, starty, x_slice_size, 100)
+        new_hand_matrix_top[col] = n_white_pix > (n_black_pix // HORIZONTAL_SCROLL_THRESHOLD)
+
+    return new_hand_matrix_right, new_hand_matrix_top
+
+    '''
+    cv2.imshow('image4', cropped_img)
+    cv2.imshow('image5', drawing)
+
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+    '''
+
+#-------------------------------------------------------------------------------
+
+
+def _get_hand_gesture(img_name_new):
     global pages_to_show
+    global previous_hands_matrix_right
+    global previous_hands_matrix_top
+    global curr_friend_name
 
     try:
         res = ''
-        img_last = cv2.imread(img_name_first)
-        gray_img_last = cv2.cvtColor(img_last, cv2.COLOR_BGR2GRAY)
-        blur_img_last = cv2.GaussianBlur(gray_img_last, (5, 5), 0)
+        img_last = cv2.imread(img_name_new)
+        img_env = cv2.imread(PHOTO_USER_ARRIVED)
 
-        ret, thresh_img_last = cv2.threshold(blur_img_last, 180, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
+        diff = cv2.absdiff(img_last, img_env)
+        gray_diff = cv2.cvtColor(diff, cv2.COLOR_BGR2GRAY)
+        ret, thresh_gray_diff_img = cv2.threshold(gray_diff, 10, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
+        blur_img_last = cv2.blur(thresh_gray_diff_img, (15, 15))
+        ret, thresh_img_last = cv2.threshold(blur_img_last, 230, 255, cv2.THRESH_BINARY) #  + cv2.THRESH_OTSU
 
-        #cv2.imshow('image1', thresh_img_last)
-        #cv2.waitKey(0)
+        '''
+        cv2.imshow('image1', thresh_gray_diff_img)
+        cv2.imshow('image2', blur_img_last)
+        cv2.imshow('image3', thresh_img_last)
 
-        # ---Compute the center/mean of the contours---
-        points_img_last = cv2.findNonZero(thresh_img_last)
-        curr_avg_img_last = np.mean(points_img_last, axis=0)
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        '''
 
-        sequel_photos_mean.append(curr_avg_img_last.tolist()[0])
-
-        if len(sequel_photos_mean) > SEQUEL_PHOTOS_TO_KEEP:
-            sequel_photos_mean.remove(sequel_photos_mean[0])
-
-        if len(sequel_photos_mean) == SEQUEL_PHOTOS_TO_KEEP:
-            threshold = 2
-            # if special gesture, try to recognize person
-
-            if ((SEQUEL_PHOTOS_TO_KEEP == 4) and
-                (sequel_photos_mean[1][1] - sequel_photos_mean[0][1] > threshold) and
-                (sequel_photos_mean[2][0] - sequel_photos_mean[1][0] > threshold) and
-                (sequel_photos_mean[3][1] - sequel_photos_mean[2][1] < -threshold) and
-                (sequel_photos_mean[0][0] - sequel_photos_mean[3][0] < -threshold)):
-
-                res = 'new_user_gesture'
-            elif len(pages_to_show) > 0:
-                res = _compare_images_for_gesture(sequel_photos_mean)
-                if res != '':
-                    sequel_photos_mean = []
-
-        #cv2.imshow('image1', thresh_img_first)
-        #cv2.waitKey(0)
+        new_hand_matrix_right, new_hand_matrix_top = _fill_hand_matrices(thresh_img_last)
+        res = _compare_images_for_gesture(previous_hands_matrix_right, new_hand_matrix_right, previous_hands_matrix_top, new_hand_matrix_top)
+        previous_hands_matrix_right = copy.deepcopy(new_hand_matrix_right)
+        previous_hands_matrix_top = copy.deepcopy(new_hand_matrix_top)
 
         return res
+
+        '''
+        cv2.imshow('image1', thresh_gray_diff_img)
+        cv2.imshow('image2', blur_img_last)
+        cv2.imshow('image3', thresh_img_last)
+
+       # cv2.waitKey(0)
+       # cv2.destroyAllWindows()
+
+        if (True): # 5 fingers
+                res = 'new_user_gesture'
+        elif len(pages_to_show) > 0:
+            res = _compare_images_for_gesture(sequel_photos_mean)
+            if res != '':
+                sequel_photos_mean = []
+        '''
+        '''
+        cv2.imshow('image1', cropped_img)
+        cv2.imshow('image2', drawing)
+
+        cv2.waitKey(0)
+        cv2.destroyAllWindows()
+        '''
 
     except Exception as err:
         print(err)
@@ -334,44 +551,36 @@ def _get_hand_gesture(img_name_first):
 #-------------------------------------------------------------------------------
 
 
-def _compare_images_for_gesture(sequel_photos_mean_list):
-
+def _compare_images_for_gesture(previous_hands_matrix_right, new_hand_matrix_right, previous_hands_matrix_top, new_hand_matrix_top):
     res = ''
+    columns_num = len(previous_hands_matrix_top)
+    rows_num = len(previous_hands_matrix_right)
+    print(str(previous_hands_matrix_right) + " " + str(new_hand_matrix_right) + "\n" + str(previous_hands_matrix_top) + " " + str(new_hand_matrix_top))
 
-    delta_x = 0
-    delta_y = 0
-
-    for i in range(2, len(sequel_photos_mean_list)):
-        delta_x += sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
-        delta_y += sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
-
-        #res_x = sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
-        #res_y = sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
-        #if abs(res_x) > abs(res_y):
-        #    delta_x += sequel_photos_mean_list[i][0] - sequel_photos_mean_list[i-1][0]
-        #else:
-        #    delta_y += sequel_photos_mean_list[i][1] - sequel_photos_mean_list[i-1][1]
-
-    print(str(delta_x) + ' ' + str(delta_y) + '\n')
-
-    if abs(abs(delta_x) - abs(delta_y)) < 30:
-        return res
-
-    threshold_ver = 20
-    threshold_hor = 30
-
-    direction = 'ver' if abs(delta_y) > abs(delta_x) else 'hor'
-    if direction == 'ver':
-        if delta_y < -threshold_ver:
-            res = 'scroll_up'
-        elif delta_y > threshold_ver:
-            res = 'scroll_down'
-    else:
-        if delta_x < -threshold_hor:
+    try:
+        # swipe right
+        if ((previous_hands_matrix_top[0]) and  # and not new_hand_matrix_top[0]
+                (not previous_hands_matrix_top[columns_num - 1] and new_hand_matrix_top[columns_num - 1])):
             res = 'swipe_right'
-        elif delta_x > threshold_hor:
+
+        # swipe left
+        elif ((not previous_hands_matrix_top[0] and new_hand_matrix_top[0]) and
+              (previous_hands_matrix_top[columns_num - 1])):    # and not new_hand_matrix_top[columns_num - 1]
             res = 'swipe_left'
 
+        # scroll down
+        elif ((previous_hands_matrix_right[0]) and  #  and not new_hand_matrix_right[0]
+              (not previous_hands_matrix_right[rows_num-1] and new_hand_matrix_right[rows_num-1])):
+            res = 'scroll_down'
+
+        # scroll up
+        elif ((previous_hands_matrix_right[rows_num-1]) and # and not new_hand_matrix_right[rows_num-1]
+              (not previous_hands_matrix_right[0] and new_hand_matrix_right[0])):
+            res = 'scroll_up'
+    except Exception as err:
+        print(err)
+
+    print(res)
     return res
 
 #-------------------------------------------------------------------------------
