@@ -73,71 +73,67 @@
 
 </style>
 <body>
-    <table style="width:1230px" align="center" border="1" cellspacing="0" cellpadding="0">
+    <table style="width:1750px" align="center" border="1" cellspacing="0" cellpadding="20">
         <tr>
-            <td width="700" valign="top">
-                <table style="height: 100%;" border="0" width="640" align="center">
-                    <tr>
-                        <td align="center">
-                            <h1 align="center">Smart Home Project</h1>
-                            <h3 align="center">Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
-                            <br>
-                            If new room: press the "new environment" button without any people in capture zone.<br><br>
-                            Stand in the middle of red rectangle.<br><br>
-                            If it is your first use of the system: insert your unique username <b>(NOT the ordinary name)</b> as appear in Facebook and press "new user".<br><br>
-                            To be recognized: stand in approximate distance of 1 meter from the camera.
-                            The best distance will be achieved when your left hand  <b>open</b> palm
-                            will barely fill blue rectangle.<br><br>
-                            Put your left hand in blue rectangle for 2 seconds to be recognized.<br><br>
-                            After you've been recognized, use right hand gestures in green areas:<br>
-                            - Up and down to scroll between posts<br>
-                            - Left and right to swipe between liked pages<br>
-                            <br><br>
+            <td align="center" width="500">
+                <h1 align="center">Smart Home Project</h1>
+                <h3 align="center">Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
+                <br>
+                If new room: press the "new environment" button without any people in capture zone.<br><br>
+                Stand in the middle of red rectangle.<br><br>
+                If it is your first use of the system: insert your unique username <b>(NOT the ordinary name)</b> as appear in Facebook and press "new user".<br><br>
+                To be recognized: stand in approximate distance of 1 meter from the camera.
+                The best distance will be achieved when your left hand  <b>open</b> palm
+                will barely fill blue rectangle.<br><br>
+                Put your left hand in blue rectangle for 2 seconds to be recognized.<br><br>
+                After you've been recognized, use right hand gestures in green areas:<br>
+                - Up and down to scroll between posts<br>
+                - Left and right to swipe between liked pages<br>
+                <br><br>
 
-                            <span style="font-weight:bold">New user:</span>
-                            <input id="new_user_input" placeholder="james.bond"/>
-                            <button id="new_user_button" onclick="new_user()" disabled>new user</button>
-                            <br>
-                            <span style="font-weight:bold"> Clear collection of users:</span>
-                            <button id="clear_collection_button" onclick="clear_col()" disabled>clear all users</button>
-                            <br>
-                            <span style="font-weight:bold"> New environment:</span>
-                            <button id="new_env_button" onclick="save_new_env()" disabled>new environment</button><br><br>
-                            <br><br>
+                <span style="font-weight:bold">New user:</span>
+                <input id="new_user_input" placeholder="james.bond"/>
+                <button id="new_user_button" onclick="new_user()" disabled>new user</button>
+                <br>
+                <span style="font-weight:bold"> Clear collection of users:</span>
+                <button id="clear_collection_button" onclick="clear_col()" disabled>clear all users</button>
+                <br>
+                <span style="font-weight:bold"> New environment:</span>
+                <button id="new_env_button" onclick="save_new_env()" disabled>new environment</button><br><br>
+                <br><br>
 
-                            <span style="font-weight:bold"> Recognized person:</span> <span id="person_name_span"></span><br>
-                            <span style="font-weight:bold">Now showing page:</span> <span id="page_name_span"></span><br>
-                            <span style="font-weight:bold">Status:</span> <span id="status_span"></span><br>
-                            <br><br>
-                        </td>
-                    </tr>
-                    <tr>
-                        <td>
-                            <div id="video_div">
-                                <svg id="rectangle_top_svg">
-                                    <rect id="rectangle_top" x="10" y="10" width="620" height="80"/>
-                                </svg>
-                                <svg id="rectangle_right_svg">
-                                    <rect id="rectangle_right" x="550" y="10" width="80" height="460"/>
-                                </svg>
-                                <svg id="rectangle_face_svg">
-                                    <rect id="rectangle_face" x="10" y="100" width="530" height="370"/>
-                                </svg>
-                                <svg id="rectangle_user_arrived_svg">
-                                    <rect id="rectangle_user_arrived" x="10" y="100" width="120" height="120"/>
-                                </svg>
-                                <video id="screenshot-video" autoplay width="640px" height="480px"></video>
-                            </div>
-                            <canvas id="screenshot-canvas" style="display:none;"></canvas>
-                            <img id="screenshot-img" src="" hidden="hidden">
-                        </td>
-                    </tr>
-                </table>
+                <span style="font-weight:bold"> Recognized person:</span> <span id="person_name_span"></span><br>
+                <span style="font-weight:bold">Now showing page:</span> <span id="page_name_span"></span><br>
+                <span style="font-weight:bold">Status:</span> <span id="status_span"></span><br>
+                <br><br>
             </td>
-            <td width="530" align="center">
-                <div id="fb-root"></div>
+            <td width="25">
+            </td>
+            <td width="530">
+                <div id="fb-root" align="center"></div>
                 <!-- note 500px is max width of fb plugin-->
                     <div class="fb-post" data-href="" data-width="500" align="center"></div>
+            </td>
+            <td width="25">
+            </td>
+            <td width="670">
+                <div id="video_div">
+                    <svg id="rectangle_top_svg">
+                        <rect id="rectangle_top" x="10" y="10" width="620" height="80"/>
+                    </svg>
+                    <svg id="rectangle_right_svg">
+                        <rect id="rectangle_right" x="550" y="10" width="80" height="460"/>
+                    </svg>
+                    <svg id="rectangle_face_svg">
+                        <rect id="rectangle_face" x="10" y="100" width="530" height="370"/>
+                    </svg>
+                    <svg id="rectangle_user_arrived_svg">
+                        <rect id="rectangle_user_arrived" x="10" y="100" width="120" height="120"/>
+                    </svg>
+                    <video id="screenshot-video" autoplay width="640px" height="480px"></video>
+                </div>
+                <canvas id="screenshot-canvas" style="display:none;"></canvas>
+                <img id="screenshot-img" src="" hidden="hidden">
             </td>
         </tr>
     </table>
