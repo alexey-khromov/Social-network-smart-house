@@ -73,12 +73,12 @@
 
 </style>
 <body>
-    <table style="width:1200px" align="center" border="1" cellspacing="0">
+    <table style="width:1230px" align="center" border="1" cellspacing="0" cellpadding="0">
         <tr>
             <td width="700" valign="top">
-                <table style="height: 100%;width: 100%" border="0" cellspacing="20">
+                <table style="height: 100%;" border="0" width="640" align="center">
                     <tr>
-                        <td align="left">
+                        <td align="center">
                             <h1 align="center">Smart Home Project</h1>
                             <h3 align="center">Creator: Alexey Khromov ; Supervisor: Oren Kalinsky</h3>
                             <br>
@@ -134,12 +134,10 @@
                     </tr>
                 </table>
             </td>
-            <td width="500">
+            <td width="530" align="center">
                 <div id="fb-root"></div>
                 <!-- note 500px is max width of fb plugin-->
-                    <div class="fb-post"
-                          data-href=""
-                          data-width="500"></div>
+                    <div class="fb-post" data-href="" data-width="500" align="center"></div>
             </td>
         </tr>
     </table>
@@ -322,10 +320,11 @@
                     success: function (result) {
                         if (result.status != '') {
                             $(".fb-post").attr('data-href', result.next_url);
-                            if (result.status == "new_person") {
+                            if (result.status == "new_user_added") {
+                                window.alert('New user was added successfully, please put your left palm in blue rectangle for calibration.')
                                 document.getElementById("status_span").textContent = 'new user added to system';
                                 document.getElementById("person_name_span").textContent = result.person_name;
-                                document.getElementById("page_name_span").textContent = result.page_name;
+                                document.getElementById("page_name_span").textContent = 'Put your left palm in blue rectangle for calibration.';
                             }
                             else {
                                 window.alert('Unrecognized returned status: ' + result.status);
@@ -340,7 +339,7 @@
                         }
                         set_readiness_status(true);
                     },
-                  error: function (result) {
+                    error: function (result) {
                         window.alert('Error in saving new user: ' + result);
                         set_readiness_status(true);
                     }

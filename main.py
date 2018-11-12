@@ -90,16 +90,16 @@ def new_user():
     username = request.args.get('user_name')  # new user name from javascript
     if sys.version_info[0] <= 2:
         import urllib
-        urllib.urlretrieve(path)
+        urllib.urlretrieve(path, PHOTO_USER_ADDED)
     elif sys.version_info[0] <= 3:
         import urllib.request
-        urllib.request.urlretrieve(path)
+        urllib.request.urlretrieve(path, PHOTO_USER_ADDED)
 
     try:
         client = boto3.client('rekognition')
         colId = "SmartSocNet"
         #c = client.create_collection(CollectionId=colId)
-        with open("photo_for_new_user.jpg", "rb") as imgf:
+        with open(PHOTO_USER_ADDED, "rb") as imgf:
             img = imgf.read()
         indr = client.index_faces(CollectionId=colId, Image={'Bytes': img}, ExternalImageId=username, MaxFaces=1, )
     except Exception as err:
@@ -110,7 +110,8 @@ def new_user():
               '-------------------------------------------------------------------------------------------------------')
         raise
 
-    res_dict = _new_person_retrieve_data()
+    res_dict = {'status': 'new_user_added',
+                'person_name': 'username'}
 
     return jsonify(res_dict)
 
@@ -555,7 +556,8 @@ def _compare_images_for_gesture(previous_hands_matrix_right, new_hand_matrix_rig
     res = ''
     columns_num = len(previous_hands_matrix_top)
     rows_num = len(previous_hands_matrix_right)
-    print(str(previous_hands_matrix_right) + " " + str(new_hand_matrix_right) + "\n" + str(previous_hands_matrix_top) + " " + str(new_hand_matrix_top))
+    print('Previous matrix vertical: ' + str(previous_hands_matrix_right) + ' ' + 'Current matrix vertical: ' + str(new_hand_matrix_right) + '\n' +
+          'Previous matrix horizontal: ' + str(previous_hands_matrix_top) + ' ' + 'Current matrix horizontal: ' + str(new_hand_matrix_top))
 
     try:
         # swipe right
