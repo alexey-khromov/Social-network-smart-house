@@ -1,0 +1,31 @@
+1.	Manual assumes you already have user in AWS and Rekognition service.
+2.	Install flask + activate virtual machine from here: 
+	http://flask.pocoo.org/docs/1.0/installation/ 
+	Run it.
+3.	Make sure you have python 2.7 and up on the virtual machine.
+4.	With pip install in virtual environment:
+	- Install beautifulsoup (for FB html parsing)
+	- Install boto3 (AWS – Rekognition API)
+	- Install OpenCV2 with following steps:
+5.	On windows:
+	From virtual environment: 
+	pip install opencv-python
+	- On RaspberryPi3 (Raspbian):
+	There is no install file for RP3, therefore it is required to download opencv libraries, and then compile and install them, the process takes approximately 2-3 hours. Follow the instructions from here:
+	https://www.pyimagesearch.com/2016/04/18/install-guide-raspberry-pi-3-raspbian-jessie-opencv-3/
+6.	Enter the following environment parameters to virtual machine with your values:
+	- export AWS_DEFAULT_REGION=us-east-1
+	- export AWS_ACCESS_KEY_ID=<your_value>
+	- export AWS_SECRET_ACCESS_KEY=<your_value>
+	- export USER_MAIL_PROJ=<your_value>
+	- export PASSWORD_PROJ=<your_value>
+7.	Run Facebook in your browser with your user.
+8.	Run the program (flask run).
+
+In case of security error with AWS, run following command (with correct data and time) and wait a minute:
+sudo timedatectl set-time '2018-11-05 15:58'
+It is strongly advised to use Ethernet cable and not WiFi.
+
+In case you want to run with raspberry camera:
+sudo modprobe bcm2835-v4l2
+But note it might not work with Javascript
